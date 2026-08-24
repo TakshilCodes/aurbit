@@ -5,16 +5,40 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.3.0",
     "prettier": "^3.7.4",
     "turbo": "^2.10.11",
     "typescript": "5.9.2"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.9.0"
+  },
+  "lint-staged": {
+    "apps/web/**/*.{js,mjs,ts,tsx}": [
+      "prettier --write",
+      "pnpm --filter web exec eslint --fix --max-warnings 0"
+    ],
+    "apps/admin/**/*.{js,mjs,ts,tsx}": [
+      "prettier --write",
+      "pnpm --filter admin exec eslint --fix --max-warnings 0"
+    ],
+    "packages/ui/**/*.{js,mjs,ts,tsx}": [
+      "prettier --write",
+      "pnpm --filter @repo/ui exec eslint --fix --max-warnings 0"
+    ],
+    "packages/eslint-config/**/*.js": [
+      "prettier --write",
+      "pnpm --filter @repo/eslint-config exec eslint --fix --max-warnings 0"
+    ],
+    "*.{css,json,md,yaml,yml}": "prettier --write"
   }
 }

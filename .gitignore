@@ -33,6 +33,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# TypeScript and Next.js generated files
+*.tsbuildinfo
+next-env.d.ts
+
 # Misc
 .DS_Store
 *.pem

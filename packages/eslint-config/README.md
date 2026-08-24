@@ -1,3 +1,7 @@
-# `@turbo/eslint-config`
+# `@repo/eslint-config`
 
-Collection of internal eslint configurations.
+Shared correctness-focused ESLint configurations for Aurbit:
+
+- `base` for TypeScript code
+- `next-js` for Next.js applications
+- `react-internal` for shared React packages
