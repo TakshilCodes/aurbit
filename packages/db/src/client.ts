@@ -1,6 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { z } from "zod";
-import { PrismaClient } from "./generated/prisma/client.js";
+import { PrismaClient } from "./generated/prisma/client.ts";
 
 const databaseUrlSchema = z
   .string()
@@ -22,6 +22,22 @@ const globalForPrisma = globalThis as typeof globalThis & {
   aurbitPrisma?: PrismaClient;
 };
 
-export const db = globalForPrisma.aurbitPrisma ?? createPrismaClient();
+function getPrismaClient() {
+  const client = globalForPrisma.aurbitPrisma ?? createPrismaClient();
+  globalForPrisma.aurbitPrisma = client;
+  return client;
+}
 
-globalForPrisma.aurbitPrisma = db;
+export const db = new Proxy({} as PrismaClient, {
+  get(_target, property): unknown {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, property, client) as unknown;
+
+    if (typeof value !== "function") {
+      return value;
+    }
+
+    return (...arguments_: unknown[]) =>
+      Reflect.apply(value, client, arguments_) as unknown;
+  },
+});

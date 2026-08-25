@@ -1,7 +1,15 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalPassThroughEnv": ["DATABASE_URL"],
+  "globalPassThroughEnv": [
+    "AUTH_EMAIL_FROM",
+    "AUTH_GOOGLE_ID",
+    "AUTH_GOOGLE_SECRET",
+    "AUTH_RESEND_KEY",
+    "AUTH_SECRET",
+    "AUTH_URL",
+    "DATABASE_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -20,7 +28,7 @@
     },
     "test": {
       "dependsOn": ["^test"],
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "dev": {
       "cache": false,

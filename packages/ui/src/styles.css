@@ -1,10 +1,41 @@
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-interactive: var(--interactive);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-focus: var(--focus);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-input: var(--input);
+}
 :root {
   color-scheme: dark;
-  --background: #090909;
-  --surface: #111111;
-  --border: #292929;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
+  --background: #000000;
+  --surface: #0a0a0a;
+  --surface-elevated: #0a0a0a;
+  --interactive: #191b1f;
+  --input: #0c0d0f;
+  --border: #27292d;
+  --border-strong: #3a3d43;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #09090b;
+  --focus: #d4d4d8;
+  --danger: #f87171;
+  --danger-surface: rgb(248 113 113 / 8%);
+  --success: #86efac;
+  --success-surface: rgb(134 239 172 / 8%);
 }
 
 * {
@@ -29,42 +60,11 @@ body {
     "Segoe UI",
     sans-serif;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.foundation-page {
-  display: grid;
-  min-height: 100svh;
-  place-items: center;
-  padding: 1.5rem;
-}
-
-.foundation-panel {
-  width: min(100%, 42rem);
-  padding: clamp(1.5rem, 5vw, 3rem);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: var(--surface);
-}
-
-.foundation-eyebrow {
-  margin: 0 0 0.75rem;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.foundation-panel h1 {
-  margin: 0;
-  font-size: clamp(1.75rem, 5vw, 2.5rem);
-  letter-spacing: -0.035em;
-  line-height: 1.1;
-}
-
-.foundation-description {
-  max-width: 34rem;
-  margin: 1rem 0 0;
-  color: var(--text-secondary);
-  line-height: 1.6;
+::selection {
+  background: rgb(244 244 245 / 18%);
+  color: var(--text-primary);
 }

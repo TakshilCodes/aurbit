@@ -3,13 +3,39 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
+    "./alert": "./src/alert.tsx",
+    "./badge": "./src/badge.tsx",
+    "./brand/icon-transparent": {
+      "types": "./src/brand/image.d.ts",
+      "default": "./src/brand/icon-transparent.png"
+    },
+    "./brand/iconwithtext-transparent": {
+      "types": "./src/brand/image.d.ts",
+      "default": "./src/brand/iconwithtext_transparent.png"
+    },
+    "./button": "./src/button.tsx",
+    "./card": "./src/card.tsx",
+    "./empty-state": "./src/empty-state.tsx",
+    "./form-field": "./src/form-field.tsx",
+    "./input": "./src/input.tsx",
+    "./page-header": "./src/page-header.tsx",
+    "./password-input": "./src/password-input.tsx",
+    "./resource-list": "./src/resource-list.tsx",
     "./styles.css": "./src/styles.css"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@aurbit/eslint-config": "workspace:*",
-    "eslint": "^9.39.1"
+    "@aurbit/typescript-config": "workspace:*",
+    "@types/react": "19.2.2",
+    "eslint": "^9.39.1",
+    "react": "^19.2.0",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
   }
 }
