@@ -1,4 +1,4 @@
-# `@repo/eslint-config`
+# `@aurbit/eslint-config`
 
 Shared correctness-focused ESLint configurations for Aurbit:
 

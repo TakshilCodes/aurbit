@@ -1,5 +1,5 @@
 {
-  "name": "@repo/ui",
+  "name": "@aurbit/ui",
   "version": "0.0.0",
   "private": true,
   "exports": {
@@ -9,7 +9,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "devDependencies": {
-    "@repo/eslint-config": "workspace:*",
+    "@aurbit/eslint-config": "workspace:*",
     "eslint": "^9.39.1"
   }
 }
