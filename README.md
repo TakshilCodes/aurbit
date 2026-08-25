@@ -18,6 +18,7 @@ Aurbit has two main applications:
 
 - `apps/web` — public website, hosted bug-report form, and embeddable reporting widget
 - `apps/admin` — authenticated company dashboard for project management and bug triage
+- `packages/db` — Prisma schema, migrations, and reusable database client
 
 Production domains:
 

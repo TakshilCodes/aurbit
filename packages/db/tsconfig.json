@@ -1,0 +1,10 @@
+{
+  "extends": "@aurbit/typescript-config/base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true
+  },
+  "include": ["prisma.config.ts", "src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

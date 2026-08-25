@@ -5,3 +5,4 @@ coverage
 dist
 out
 pnpm-lock.yaml
+packages/db/src/generated

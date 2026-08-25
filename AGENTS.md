@@ -143,3 +143,11 @@ Before completing a task:
 - Remove obsolete code introduced or replaced by the current change.
 - Run only the checks relevant to the change.
 - Do not claim completion with known errors.
+
+## Git safety
+
+- Inspect the current Git branch and working tree before substantial changes.
+- Never make feature work directly on `main` unless explicitly requested.
+- Do not create, switch, merge, delete, commit, or push branches unless explicitly instructed.
+- Do not overwrite unrelated local changes.
+- If the current branch does not match the task context, stop and report it before editing.
