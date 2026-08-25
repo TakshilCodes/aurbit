@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "@aurbit/ui/styles.css";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Aurbit",

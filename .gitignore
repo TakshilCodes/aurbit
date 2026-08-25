@@ -32,6 +32,8 @@ dist
 # Cloudflare local secrets
 .dev.vars
 .dev.vars.*
+!.dev.vars.example
+!**/.dev.vars.example
 
 # Debug
 npm-debug.log*

@@ -8,7 +8,14 @@ import { config as baseConfig } from "./base.js";
 /** @type {import("eslint").Linter.Config[]} */
 export const nextJsConfig = [
   ...baseConfig,
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([
+    ".next/**",
+    ".open-next/**",
+    ".wrangler/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
   {
     ...pluginReact.configs.flat.recommended,
     languageOptions: {

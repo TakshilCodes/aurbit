@@ -10,9 +10,15 @@ Aurbit uses three isolated environment tiers. Resources and secrets must not be 
 
 ## Current variables
 
-The only variable currently required by the repository is `DATABASE_URL` for `@aurbit/db`; its local example is in `packages/db/.env.example`.
+`packages/db/.env.example` documents `DATABASE_URL` for Prisma commands. `apps/admin/.env.example` documents the variables used by the authenticated dashboard:
 
-Remote database and Redis resources are not configured in this stage because neither application consumes them yet. When they are introduced, Preview / Staging and Production must receive different connection values through their environment-specific secret stores.
+- `DATABASE_URL` connects the admin application to PostgreSQL.
+- `AUTH_SECRET` signs and encrypts Auth.js session data and must be unique per environment.
+- `AUTH_URL` is the canonical admin application URL used in authentication links.
+- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` enable Google sign-in when both are configured.
+- `AUTH_RESEND_KEY` and `AUTH_EMAIL_FROM` enable magic links, email verification, and password-reset email when both are configured.
+
+Provider-backed flows remain unavailable when their credentials are absent; the application does not substitute fake providers or secrets. Preview / Staging and Production must use separate databases, OAuth applications or callback configuration where required, Resend configuration, and secrets supplied through their environment-specific secret stores. Redis remains local-only infrastructure in this stage because no feature consumes it yet.
 
 ## Cloudflare applications
 
