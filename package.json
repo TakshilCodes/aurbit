@@ -3,12 +3,15 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
+    "build:cloudflare": "turbo run cf:build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "preview:cloudflare:admin": "pnpm --filter admin cf:preview",
+    "preview:cloudflare:web": "pnpm --filter web cf:preview",
     "prepare": "husky"
   },
   "devDependencies": {
