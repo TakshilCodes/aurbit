@@ -35,6 +35,10 @@
       "prettier --write",
       "pnpm --filter @aurbit/ui exec eslint --fix --max-warnings 0"
     ],
+    "packages/db/**/*.{js,mjs,ts,tsx}": [
+      "prettier --write",
+      "pnpm --filter @aurbit/db exec eslint --fix --max-warnings 0"
+    ],
     "packages/eslint-config/**/*.js": [
       "prettier --write",
       "pnpm --filter @aurbit/eslint-config exec eslint --fix --max-warnings 0"
