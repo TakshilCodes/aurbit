@@ -14,7 +14,6 @@ import {
   resetPasswordSchema,
   safeRedirectPath,
   signupSchema,
-  verificationTokenSchema,
 } from "../../lib/validation";
 
 export type AuthField =
@@ -193,57 +192,6 @@ export async function resendVerificationAction(
     success:
       "If that address has an unverified account, a new link has been sent.",
   };
-}
-
-export async function verifyEmailAction(
-  _previousState: AuthActionState,
-  formData: FormData,
-): Promise<AuthActionState> {
-  const parsed = verificationTokenSchema.safeParse({
-    token: formData.get("token"),
-  });
-
-  if (!parsed.success) {
-    return { error: "This verification link is invalid or expired." };
-  }
-
-  const tokenHash = await hashToken(parsed.data.token);
-  const verified = await db.$transaction(async (transaction) => {
-    const token = await transaction.authToken.findUnique({
-      where: { tokenHash },
-      select: { id: true, userId: true, type: true, expiresAt: true },
-    });
-
-    if (
-      !token ||
-      token.type !== AuthTokenType.EMAIL_VERIFICATION ||
-      token.expiresAt <= new Date()
-    ) {
-      return false;
-    }
-
-    const consumed = await transaction.authToken.deleteMany({
-      where: { id: token.id, expiresAt: { gt: new Date() } },
-    });
-
-    if (consumed.count !== 1) {
-      return false;
-    }
-
-    await transaction.user.update({
-      where: { id: token.userId },
-      data: { emailVerified: new Date() },
-      select: { id: true },
-    });
-
-    return true;
-  });
-
-  if (!verified) {
-    return { error: "This verification link is invalid or expired." };
-  }
-
-  redirect("/login?verified=1");
 }
 
 export async function forgotPasswordAction(

@@ -4,31 +4,10 @@ import { Button } from "@aurbit/ui/button";
 import { FormField } from "@aurbit/ui/form-field";
 import { PasswordInput } from "@aurbit/ui/password-input";
 import { useActionState, useState } from "react";
-import {
-  resetPasswordAction,
-  verifyEmailAction,
-  type AuthActionState,
-} from "../actions";
+import { resetPasswordAction, type AuthActionState } from "../actions";
 import { ActionMessage } from "./action-message";
 
 const initialState: AuthActionState = {};
-
-export function VerifyEmailForm({ token }: { token: string }) {
-  const [state, formAction, pending] = useActionState(
-    verifyEmailAction,
-    initialState,
-  );
-
-  return (
-    <form action={formAction} className="grid gap-4" noValidate>
-      <input name="token" type="hidden" value={token} />
-      <ActionMessage state={state} />
-      <Button className="w-full" disabled={pending} type="submit">
-        {pending ? "Verifying…" : "Verify email"}
-      </Button>
-    </form>
-  );
-}
 
 export function ResetPasswordForm({ token }: { token: string }) {
   const [state, formAction, pending] = useActionState(
@@ -86,7 +65,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       </FormField>
       <ActionMessage state={state} />
       <Button className="mt-1 w-full" disabled={pending} type="submit">
-        {pending ? "Resetting password…" : "Reset password"}
+        {pending ? "Resetting password\u2026" : "Reset password"}
       </Button>
     </form>
   );

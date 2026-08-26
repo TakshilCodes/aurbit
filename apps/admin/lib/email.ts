@@ -1,22 +1,26 @@
 import { Resend } from "resend";
 import { requireEmailEnvironment } from "./environment";
+import { createVerificationEmail } from "./verification-email";
 
 async function sendEmail({
-  to,
+  html,
   subject,
   text,
+  to,
 }: {
-  to: string;
+  html?: string;
   subject: string;
   text: string;
+  to: string;
 }) {
   const environment = requireEmailEnvironment();
   const resend = new Resend(environment.AUTH_RESEND_KEY);
   const result = await resend.emails.send({
     from: environment.AUTH_EMAIL_FROM,
-    to,
+    html,
     subject,
     text,
+    to,
   });
 
   if (result.error) {
@@ -31,13 +35,22 @@ function authUrl(path: string, token: string) {
   return url.toString();
 }
 
+function authAssetUrl(path: string) {
+  const environment = requireEmailEnvironment();
+  return new URL(path, environment.AUTH_URL).toString();
+}
+
 export function sendVerificationEmail(email: string, token: string) {
-  const url = authUrl("/verify-email", token);
+  const verificationUrl = authUrl("/verify-email", token);
+  const content = createVerificationEmail({
+    logoUrl: authAssetUrl("/brand/aurbit-wordmark.png"),
+    verificationUrl,
+  });
 
   return sendEmail({
+    ...content,
     to: email,
     subject: "Verify your Aurbit email",
-    text: `Verify your Aurbit email address by opening this link:\n\n${url}\n\nThis link expires in one hour. If you did not create an Aurbit account, you can ignore this email.`,
   });
 }
 
@@ -47,6 +60,10 @@ export function sendPasswordResetEmail(email: string, token: string) {
   return sendEmail({
     to: email,
     subject: "Reset your Aurbit password",
-    text: `Reset your Aurbit password by opening this link:\n\n${url}\n\nThis link expires in one hour. If you did not request a password reset, you can ignore this email.`,
+    text: `Reset your Aurbit password by opening this link:
+
+${url}
+
+This link expires in one hour. If you did not request a password reset, you can ignore this email.`,
   });
 }

@@ -1,4 +1,5 @@
 import { db } from "@aurbit/db";
+import { Avatar } from "@aurbit/ui/avatar";
 import { Badge } from "@aurbit/ui/badge";
 import aurbitIcon from "@aurbit/ui/brand/icon-transparent";
 import aurbitWordmark from "@aurbit/ui/brand/iconwithtext-transparent";
@@ -39,9 +40,17 @@ export default async function AppLayout({
           />
         </Link>
         <nav aria-label="Account" className="flex items-center gap-1">
-          <span className="mr-2 hidden max-w-52 truncate text-xs text-muted md:inline">
-            {user.email}
-          </span>
+          <div className="mr-1 flex items-center gap-2">
+            <Avatar
+              alt={`${user.name ?? user.email} profile picture`}
+              name={user.name}
+              size="sm"
+              src={user.image}
+            />
+            <span className="hidden max-w-52 truncate text-xs text-muted lg:inline">
+              {user.name ?? user.email}
+            </span>
+          </div>
           <Link
             className={buttonStyles({ size: "sm", variant: "ghost" })}
             href="/organizations"

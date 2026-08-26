@@ -2,10 +2,12 @@ import { Alert } from "@aurbit/ui/alert";
 import { PageHeader } from "@aurbit/ui/page-header";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { verifyEmailToken } from "../../../lib/email-verification";
 import { AuthFooter } from "../components/auth-patterns";
-import { VerifyEmailForm } from "../components/token-action-form";
 
 export const metadata: Metadata = { title: "Verify email | Aurbit" };
+export const dynamic = "force-dynamic";
 
 export default async function VerifyEmailPage({
   searchParams,
@@ -13,26 +15,28 @@ export default async function VerifyEmailPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token = "" } = await searchParams;
+  const verified = await verifyEmailToken(token);
+
+  if (verified) {
+    redirect("/login?verified=1");
+  }
 
   return (
     <>
       <PageHeader
-        description="Confirm this email address before signing in with a password."
+        description="This verification link may have expired or already been used."
         size="compact"
-        title="Verify your email"
+        title="Couldn't verify email"
       />
-      {token ? (
-        <VerifyEmailForm token={token} />
-      ) : (
-        <Alert role="alert">
-          This verification link is invalid or expired.
-        </Alert>
-      )}
+      <Alert role="alert">This verification link is invalid or expired.</Alert>
       <AuthFooter>
         <p>
           <Link href="/check-email?type=verification">
             Request another link
           </Link>
+        </p>
+        <p>
+          <Link href="/login">Back to sign in</Link>
         </p>
       </AuthFooter>
     </>
