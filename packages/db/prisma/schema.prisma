@@ -20,6 +20,20 @@ enum AuthTokenType {
   PASSWORD_RESET
 }
 
+enum BugReportStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum BugReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 model User {
   id                   String               @id @default(cuid())
   email                String               @unique
@@ -116,9 +130,33 @@ model Project {
   name           String
   publicKey      String       @unique @map("public_key")
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  bugReports     BugReport[]
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
 
+  @@unique([id, organizationId])
   @@index([organizationId])
   @@map("projects")
+}
+
+model BugReport {
+  id             String            @id @default(cuid())
+  organizationId String            @map("organization_id")
+  projectId      String            @map("project_id")
+  title          String            @db.VarChar(160)
+  description    String            @db.Text
+  reporterEmail  String?           @map("reporter_email") @db.VarChar(254)
+  pageUrl        String?           @map("page_url") @db.VarChar(2048)
+  userAgent      String?           @map("user_agent") @db.VarChar(512)
+  viewportWidth  Int?              @map("viewport_width")
+  viewportHeight Int?              @map("viewport_height")
+  status         BugReportStatus   @default(OPEN)
+  priority       BugReportPriority @default(MEDIUM)
+  project        Project           @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  @@index([organizationId, projectId, createdAt])
+  @@index([projectId, createdAt])
+  @@map("bug_reports")
 }

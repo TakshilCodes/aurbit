@@ -46,7 +46,7 @@ const providers: Provider[] = [
         id: user.id,
         email: user.email,
         name: user.name,
-        image: String(user.image),
+        image: user.image,
       };
     },
   }),
@@ -67,7 +67,7 @@ if (
           id: profile.sub,
           name: profile.name,
           email: profile.email,
-          image: profile.picture,
+          image: profile.picture ?? null,
           emailVerified: profile.email_verified ? new Date() : null,
         };
       },

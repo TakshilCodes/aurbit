@@ -38,6 +38,9 @@ importers:
       '@opennextjs/cloudflare':
         specifier: ^1.20.2
         version: 1.20.2(next@16.3.0(@types/node@22.15.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(wrangler@4.125.0)
+      '@tanstack/react-query':
+        specifier: ^5.102.5
+        version: 5.102.5(react@19.2.0)
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -99,6 +102,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@aurbit/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@aurbit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -114,6 +120,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@aurbit/eslint-config':
         specifier: workspace:*
@@ -145,6 +154,9 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.15.3)(vite@8.2.2(@types/node@22.15.3)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(yaml@2.9.0))
       wrangler:
         specifier: ^4.125.0
         version: 4.125.0
@@ -1859,6 +1871,14 @@ packages:
 
   '@tailwindcss/postcss@4.3.3':
     resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
+
+  '@tanstack/query-core@5.102.5':
+    resolution: {integrity: sha512-RjCmHf9cPRYcH/dpO0Jagw3rxCM1bLzMKKSGzaDkQJADDKGpv5RFjN54IyHSOIPa822AUA7ASOXDjjy1jfyzIA==}
+
+  '@tanstack/react-query@5.102.5':
+    resolution: {integrity: sha512-PyTmSq2nW4MnPuQ/T4hZbH2BYShpgCLSJNwCaPEEYO3RWd9yX611wOMm7etz2SZWVh4N7Azag5iZLMDqYTzfNA==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@tsconfig/node18@1.0.3':
     resolution: {integrity: sha512-RbwvSJQsuN9TB04AQbGULYfOGE/RnSFk/FLQ5b0NmDf5Kx2q/lABZbHQPKCO1vZ6Fiwkplu+yb9pGdLy1iGseQ==}
@@ -6072,6 +6092,13 @@ snapshots:
       '@tailwindcss/oxide': 4.3.3
       postcss: 8.5.26
       tailwindcss: 4.3.3
+
+  '@tanstack/query-core@5.102.5': {}
+
+  '@tanstack/react-query@5.102.5(react@19.2.0)':
+    dependencies:
+      '@tanstack/query-core': 5.102.5
+      react: 19.2.0
 
   '@tsconfig/node18@1.0.3': {}
 

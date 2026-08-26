@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     "./alert": "./src/alert.tsx",
+    "./avatar": "./src/avatar.tsx",
     "./badge": "./src/badge.tsx",
     "./brand/icon-transparent": {
       "types": "./src/brand/image.d.ts",
@@ -21,7 +22,8 @@
     "./page-header": "./src/page-header.tsx",
     "./password-input": "./src/password-input.tsx",
     "./resource-list": "./src/resource-list.tsx",
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./src/styles.css",
+    "./textarea": "./src/textarea.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

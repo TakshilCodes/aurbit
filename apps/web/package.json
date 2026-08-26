@@ -10,14 +10,17 @@
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@aurbit/db": "workspace:*",
     "@aurbit/ui": "workspace:*",
     "@opennextjs/cloudflare": "^1.20.2",
     "next": "16.3.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@aurbit/eslint-config": "workspace:*",
@@ -30,6 +33,7 @@
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.2",
+    "vitest": "^4.1.11",
     "wrangler": "^4.125.0"
   }
 }
