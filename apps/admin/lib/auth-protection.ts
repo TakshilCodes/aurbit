@@ -3,11 +3,11 @@ import {
   getRateLimitStore,
   type RateLimitStore,
 } from "@aurbit/rate-limit";
+import {
+  isTurnstileTokenValidShape,
+  verifyTurnstileToken as verifySharedTurnstileToken,
+} from "@aurbit/turnstile/server";
 import { headers } from "next/headers";
-
-const SITEVERIFY_URL =
-  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-const REQUEST_TIMEOUT_MS = 5_000;
 
 export const AUTH_RATE_LIMITS = {
   login: { attempts: 10, windowSeconds: 10 * 60 },
@@ -22,8 +22,6 @@ export type AuthProtectionFailure =
   | "rate-limited"
   | "turnstile-invalid"
   | "unavailable";
-
-type Fetch = typeof fetch;
 
 type ProtectionInput = {
   flow: AuthProtectionFlow;
@@ -41,15 +39,6 @@ type ProtectionDependencies = {
   verifyTurnstile?: (input: ProtectionInput) => Promise<boolean>;
 };
 
-type TurnstileResponse = {
-  success?: boolean;
-  action?: string;
-  hostname?: string;
-  metadata?: {
-    result_with_testing_key?: boolean;
-  };
-};
-
 function requiredEnvironmentValue(name: string) {
   const value = process.env[name]?.trim();
 
@@ -60,10 +49,6 @@ function requiredEnvironmentValue(name: string) {
   }
 
   return value;
-}
-
-function requestSignal() {
-  return AbortSignal.timeout(REQUEST_TIMEOUT_MS);
 }
 
 async function hashIdentifier(value: string) {
@@ -111,51 +96,24 @@ export async function checkAuthRateLimit(
 
 export async function verifyTurnstileToken(
   input: ProtectionInput,
-  fetchImplementation: Fetch = fetch,
+  fetchImplementation: typeof fetch = fetch,
 ) {
-  if (
-    typeof input.turnstileToken !== "string" ||
-    !input.turnstileToken ||
-    input.turnstileToken.length > 2_048
-  ) {
+  if (!isTurnstileTokenValidShape(input.turnstileToken)) {
     return false;
   }
 
   const secret = requiredEnvironmentValue("TURNSTILE_SECRET_KEY");
   const authUrl = requiredEnvironmentValue("AUTH_URL");
-  const expectedHostname = new URL(authUrl).hostname;
-  const formData = new FormData();
-  formData.set("secret", secret);
-  formData.set("response", input.turnstileToken);
-  if (input.ip !== "unknown") {
-    formData.set("remoteip", input.ip);
-  }
-  formData.set("idempotency_key", crypto.randomUUID());
 
-  const response = await fetchImplementation(SITEVERIFY_URL, {
-    method: "POST",
-    body: formData,
-    cache: "no-store",
-    signal: requestSignal(),
-  });
-
-  if (!response.ok) {
-    throw new Error("Turnstile verification request failed");
-  }
-
-  const result = (await response.json()) as TurnstileResponse;
-
-  if (result.metadata?.result_with_testing_key === true) {
-    return (
-      result.success === true &&
-      (expectedHostname === "localhost" || expectedHostname === "127.0.0.1")
-    );
-  }
-
-  return (
-    result.success === true &&
-    result.action === input.flow &&
-    result.hostname === expectedHostname
+  return verifySharedTurnstileToken(
+    {
+      action: input.flow,
+      expectedHostname: new URL(authUrl).hostname,
+      remoteIp: input.ip,
+      secretKey: secret,
+      token: input.turnstileToken,
+    },
+    fetchImplementation,
   );
 }
 

@@ -29,6 +29,8 @@ function widgetBootstrap(reportOrigin: string) {
       reportOrigin,
     );
     const sourcePageUrl = new URL(window.location.href);
+    sourcePageUrl.username = "";
+    sourcePageUrl.password = "";
     sourcePageUrl.search = "";
     sourcePageUrl.hash = "";
     reportPageUrl.searchParams.set("source", sourcePageUrl.toString());

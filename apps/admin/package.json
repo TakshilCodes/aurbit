@@ -26,7 +26,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "resend": "^6.22.1",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@aurbit/turnstile": "workspace:*"
   },
   "devDependencies": {
     "@aurbit/eslint-config": "workspace:*",

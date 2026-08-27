@@ -153,10 +153,25 @@ model BugReport {
   status         BugReportStatus   @default(OPEN)
   priority       BugReportPriority @default(MEDIUM)
   project        Project           @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  attachments    Attachment[]
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
   @@index([organizationId, projectId, createdAt])
   @@index([projectId, createdAt])
   @@map("bug_reports")
+}
+
+model Attachment {
+  id          String    @id @default(cuid())
+  bugReportId String    @map("bug_report_id")
+  storageKey  String    @unique @map("storage_key") @db.VarChar(255)
+  fileName    String    @map("file_name") @db.VarChar(255)
+  contentType String    @map("content_type") @db.VarChar(100)
+  size        Int
+  bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([bugReportId])
+  @@map("attachments")
 }

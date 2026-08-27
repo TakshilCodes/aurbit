@@ -12,7 +12,7 @@ import {
 } from "../actions";
 import { ActionMessage } from "./action-message";
 import { AuthDivider, GoogleIcon } from "./auth-patterns";
-import { TurnstileWidget } from "./turnstile-widget";
+import { TurnstileWidget } from "@aurbit/turnstile/widget";
 
 const initialState: AuthActionState = {};
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";

@@ -8,4 +8,5 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS",
   },
+  "r2_buckets": [{ "binding": "BUG_REPORT_ATTACHMENTS" }],
 }

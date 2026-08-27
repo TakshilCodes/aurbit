@@ -2,7 +2,6 @@
 
 import Script from "next/script";
 import { useEffect, useRef, useState } from "react";
-import type { AuthProtectionFlow } from "../../../lib/auth-protection";
 
 declare global {
   interface Window {
@@ -32,7 +31,7 @@ export function TurnstileWidget({
   siteKey,
   onTokenChange,
 }: {
-  action: AuthProtectionFlow;
+  action: string;
   pending: boolean;
   siteKey: string;
   onTokenChange: (token: string) => void;

@@ -1,0 +1,29 @@
+{
+  "name": "@aurbit/turnstile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./server": "./src/server.ts",
+    "./widget": "./src/widget.tsx"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@aurbit/eslint-config": "workspace:*",
+    "@aurbit/typescript-config": "workspace:*",
+    "@types/react": "19.2.2",
+    "eslint": "^9.39.1",
+    "next": "16.3.0",
+    "react": "^19.2.0",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "next": "^16.3.0",
+    "react": "^19.2.0"
+  }
+}

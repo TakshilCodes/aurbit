@@ -27,6 +27,8 @@ describe("widget script", () => {
     expect(script).toContain("^pk_proj_[a-f0-9]{24}$");
     expect(script).toContain('"/report/" + encodeURIComponent(projectKey)');
     expect(script).toContain('searchParams.set("source"');
+    expect(script).toContain('sourcePageUrl.username = ""');
+    expect(script).toContain('sourcePageUrl.password = ""');
     expect(script).toContain('sourcePageUrl.search = ""');
     expect(script).toContain('sourcePageUrl.hash = ""');
     expect(script).not.toContain("data-url");

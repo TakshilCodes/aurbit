@@ -22,6 +22,11 @@ function safeSourceUrl(source: string | string[] | undefined) {
       return "";
     }
 
+    url.username = "";
+    url.password = "";
+    url.search = "";
+    url.hash = "";
+
     return url.toString();
   } catch {
     return "";

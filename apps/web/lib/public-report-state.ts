@@ -1,5 +1,6 @@
 export type PublicReportFieldErrors = Partial<
   Record<
+    | "attachments"
     | "description"
     | "pageUrl"
     | "projectKey"

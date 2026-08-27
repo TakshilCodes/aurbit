@@ -5,12 +5,24 @@ import { Button } from "@aurbit/ui/button";
 import { FormField } from "@aurbit/ui/form-field";
 import { Input } from "@aurbit/ui/input";
 import { Textarea } from "@aurbit/ui/textarea";
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { TurnstileWidget } from "@aurbit/turnstile/widget";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { getPublicReportAttachmentSelectionError } from "../../../lib/public-report-attachment-policy";
 import {
   initialPublicReportState,
   type PublicReportSubmissionState,
 } from "../../../lib/public-report-state";
 import { submitPublicReportAction } from "./actions";
+import { AttachmentPicker } from "./attachment-picker";
+
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 function ReportMessage({ state }: { state: PublicReportSubmissionState }) {
   if (!state.message) {
@@ -45,11 +57,44 @@ export function PublicReportForm({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [reporterEmail, setReporterEmail] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const submissionStartedRef = useRef(false);
+  const attachmentSelectionError = useMemo(
+    () => getPublicReportAttachmentSelectionError(attachments),
+    [attachments],
+  );
   const [browserContext, setBrowserContext] = useState({
     userAgent: "",
     viewportHeight: "",
     viewportWidth: "",
   });
+
+  const submitWithAttachments = useCallback(
+    (formData: FormData) => {
+      if (
+        submissionStartedRef.current ||
+        attachmentSelectionError ||
+        !turnstileToken
+      ) {
+        return;
+      }
+
+      submissionStartedRef.current = true;
+      formData.delete("attachments");
+      for (const attachment of attachments) {
+        formData.append("attachments", attachment, attachment.name);
+      }
+      formAction(formData);
+    },
+    [attachmentSelectionError, attachments, formAction, turnstileToken],
+  );
+
+  useEffect(() => {
+    if (!pending) {
+      submissionStartedRef.current = false;
+    }
+  }, [pending]);
 
   useEffect(() => {
     setBrowserContext({
@@ -78,7 +123,11 @@ export function PublicReportForm({
   }
 
   return (
-    <form action={formAction} className="mt-10 grid gap-5" noValidate>
+    <form
+      action={submitWithAttachments}
+      className="mt-10 grid gap-5"
+      noValidate
+    >
       <FormField
         error={state.fieldErrors?.title}
         id="report-title"
@@ -148,6 +197,12 @@ export function PublicReportForm({
         />
       </FormField>
 
+      <AttachmentPicker
+        files={attachments}
+        onFilesChange={setAttachments}
+        serverError={state.fieldErrors?.attachments}
+      />
+
       <input name="pageUrl" type="hidden" value={pageUrl} />
       <input name="userAgent" type="hidden" value={browserContext.userAgent} />
       <input
@@ -161,9 +216,27 @@ export function PublicReportForm({
         value={browserContext.viewportWidth}
       />
 
+      <input
+        name="cf-turnstile-response"
+        type="hidden"
+        value={turnstileToken}
+      />
+      <TurnstileWidget
+        action="public-report"
+        onTokenChange={setTurnstileToken}
+        pending={pending}
+        siteKey={turnstileSiteKey}
+      />
+
       <ReportMessage state={state} />
 
-      <Button className="w-full" disabled={pending} type="submit">
+      <Button
+        className="w-full"
+        disabled={
+          pending || !turnstileToken || Boolean(attachmentSelectionError)
+        }
+        type="submit"
+      >
         {pending ? "Sending report…" : "Send report"}
       </Button>
 
