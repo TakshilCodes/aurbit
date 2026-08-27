@@ -17,8 +17,10 @@ Aurbit uses three isolated environment tiers. Resources and secrets must not be 
 - `AUTH_URL` is the canonical admin application URL used in authentication links.
 - `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` enable Google sign-in when both are configured.
 - `AUTH_RESEND_KEY` and `AUTH_EMAIL_FROM` enable magic links, email verification, and password-reset email when both are configured.
+- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` renders Cloudflare Turnstile; `TURNSTILE_SECRET_KEY` validates tokens server-side.
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` connect authentication rate limiting to Redis over HTTP.
 
-Provider-backed flows remain unavailable when their credentials are absent; the application does not substitute fake providers or secrets. Preview / Staging and Production must use separate databases, OAuth applications or callback configuration where required, Resend configuration, and secrets supplied through their environment-specific secret stores. Redis remains local-only infrastructure in this stage because no feature consumes it yet.
+Provider-backed flows remain unavailable when their credentials are absent; the application does not substitute fake providers or secrets. Preview / Staging and Production must use separate databases, OAuth applications or callback configuration where required, Resend configuration, and secrets supplied through their environment-specific secret stores. Authentication rate limiting uses an HTTP-compatible Upstash Redis database in preview and production. The Docker Redis service remains available for later local TCP-based features, but authentication protection intentionally uses the same REST contract in every environment.
 
 ## Cloudflare applications
 

@@ -12,8 +12,10 @@ import {
 } from "../actions";
 import { ActionMessage } from "./action-message";
 import { AuthDivider, GoogleIcon } from "./auth-patterns";
+import { TurnstileWidget } from "./turnstile-widget";
 
 const initialState: AuthActionState = {};
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [state, formAction, pending] = useActionState(
@@ -24,6 +26,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   return (
     <div className="grid gap-6">
@@ -122,8 +125,23 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
             value={confirmPassword}
           />
         </FormField>
+        <input
+          name="cf-turnstile-response"
+          type="hidden"
+          value={turnstileToken}
+        />
+        <TurnstileWidget
+          action="signup"
+          onTokenChange={setTurnstileToken}
+          pending={pending}
+          siteKey={turnstileSiteKey}
+        />
         <ActionMessage state={state} />
-        <Button className="mt-1 w-full" disabled={pending} type="submit">
+        <Button
+          className="mt-1 w-full"
+          disabled={pending || !turnstileToken}
+          type="submit"
+        >
           {pending ? "Creating account…" : "Create account"}
         </Button>
       </form>

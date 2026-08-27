@@ -13,8 +13,10 @@ import {
 } from "../actions";
 import { ActionMessage } from "./action-message";
 import { AuthDivider, GoogleIcon } from "./auth-patterns";
+import { TurnstileWidget } from "./turnstile-widget";
 
 const initialState: AuthActionState = {};
+const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export function LoginForm({
   redirectTo,
@@ -36,6 +38,8 @@ export function LoginForm({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [magicEmail, setMagicEmail] = useState("");
+  const [loginToken, setLoginToken] = useState("");
+  const [magicToken, setMagicToken] = useState("");
 
   return (
     <div className="grid gap-6">
@@ -92,8 +96,19 @@ export function LoginForm({
             value={password}
           />
         </FormField>
+        <input name="cf-turnstile-response" type="hidden" value={loginToken} />
+        <TurnstileWidget
+          action="login"
+          onTokenChange={setLoginToken}
+          pending={loginPending}
+          siteKey={turnstileSiteKey}
+        />
         <ActionMessage state={loginState} />
-        <Button className="mt-1 w-full" disabled={loginPending} type="submit">
+        <Button
+          className="mt-1 w-full"
+          disabled={loginPending || !loginToken}
+          type="submit"
+        >
           {loginPending ? "Signing in…" : "Sign in"}
         </Button>
       </form>
@@ -124,10 +139,21 @@ export function LoginForm({
                 type="email"
               />
             </FormField>
+            <input
+              name="cf-turnstile-response"
+              type="hidden"
+              value={magicToken}
+            />
+            <TurnstileWidget
+              action="magic-link"
+              onTokenChange={setMagicToken}
+              pending={magicPending}
+              siteKey={turnstileSiteKey}
+            />
             <ActionMessage state={magicState} />
             <Button
               className="w-full"
-              disabled={magicPending}
+              disabled={magicPending || !magicToken}
               type="submit"
               variant="secondary"
             >
