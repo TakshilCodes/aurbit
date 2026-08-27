@@ -8,7 +8,11 @@
     "AUTH_RESEND_KEY",
     "AUTH_SECRET",
     "AUTH_URL",
-    "DATABASE_URL"
+    "DATABASE_URL",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    "TURNSTILE_SECRET_KEY",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "UPSTASH_REDIS_REST_URL"
   ],
   "tasks": {
     "build": {

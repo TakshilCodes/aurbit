@@ -43,7 +43,7 @@ export default async function ReportPage({
   }
 
   return (
-    <main className="grid h-svh place-items-center overflow-y-auto bg-background px-5 py-8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6 sm:py-10">
+    <main className="grid h-svh place-items-center overflow-y-auto bg-background px-5 py-8 scrollbar-none [&::-webkit-scrollbar]:hidden sm:px-6 sm:py-10">
       <Card className="w-full max-w-xl border-border-strong p-[clamp(1.5rem,5vw,2.5rem)]">
         <header className="mb-10 flex items-center justify-between gap-4">
           <Image

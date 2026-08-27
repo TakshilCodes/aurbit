@@ -4,6 +4,12 @@ import { AuthTokenType, db, Prisma } from "@aurbit/db";
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { signIn } from "../../auth";
+import {
+  getClientIp,
+  runProtectedAuthOperation,
+  type AuthProtectionFailure,
+  type AuthProtectionFlow,
+} from "../../lib/auth-protection";
 import { sendPasswordResetEmail, sendVerificationEmail } from "../../lib/email";
 import { authCapabilities } from "../../lib/environment";
 import { hashPassword } from "../../lib/password";
@@ -29,6 +35,35 @@ export type AuthActionState = {
   fieldErrors?: Partial<Record<AuthField, string[]>>;
 };
 
+function protectionError(reason: AuthProtectionFailure): AuthActionState {
+  if (reason === "rate-limited") {
+    return { error: "Too many attempts. Please wait and try again." };
+  }
+
+  if (reason === "turnstile-invalid") {
+    return { error: "Security verification failed or expired. Try again." };
+  }
+
+  return { error: "Unable to verify this request right now. Try again." };
+}
+
+async function protect<T>(
+  flow: AuthProtectionFlow,
+  formData: FormData,
+  operation: () => Promise<T>,
+  email?: string,
+) {
+  return runProtectedAuthOperation(
+    {
+      flow,
+      ip: await getClientIp(),
+      email,
+      turnstileToken: formData.get("cf-turnstile-response"),
+    },
+    operation,
+  );
+}
+
 export async function loginAction(
   _previousState: AuthActionState,
   formData: FormData,
@@ -42,20 +77,29 @@ export async function loginAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  try {
-    await signIn("credentials", {
-      ...parsed.data,
-      redirectTo: safeRedirectPath(formData.get("redirectTo")),
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Invalid email or password." };
-    }
+  const result = await protect(
+    "login",
+    formData,
+    async (): Promise<AuthActionState> => {
+      try {
+        await signIn("credentials", {
+          ...parsed.data,
+          redirectTo: safeRedirectPath(formData.get("redirectTo")),
+        });
+      } catch (error) {
+        if (error instanceof AuthError) {
+          return { error: "Invalid email or password." };
+        }
 
-    throw error;
-  }
+        throw error;
+      }
 
-  return {};
+      return {};
+    },
+    parsed.data.email,
+  );
+
+  return result.allowed ? result.value : protectionError(result.reason);
 }
 
 export async function googleLoginAction() {
@@ -80,20 +124,29 @@ export async function magicLinkAction(
     return { error: "Email sign-in is not configured yet." };
   }
 
-  try {
-    await signIn("resend", {
-      email: parsed.data.email,
-      redirectTo: safeRedirectPath(formData.get("redirectTo")),
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Unable to send a sign-in link. Try again." };
-    }
+  const result = await protect(
+    "magic-link",
+    formData,
+    async (): Promise<AuthActionState> => {
+      try {
+        await signIn("resend", {
+          email: parsed.data.email,
+          redirectTo: safeRedirectPath(formData.get("redirectTo")),
+        });
+      } catch (error) {
+        if (error instanceof AuthError) {
+          return { error: "Unable to send a sign-in link. Try again." };
+        }
 
-    throw error;
-  }
+        throw error;
+      }
 
-  return {};
+      return {};
+    },
+    parsed.data.email,
+  );
+
+  return result.allowed ? result.value : protectionError(result.reason);
 }
 
 export async function signupAction(
@@ -115,48 +168,59 @@ export async function signupAction(
     return { error: "Email verification is not configured yet." };
   }
 
-  const passwordHash = await hashPassword(parsed.data.password);
-  let userId: string;
+  const result = await protect(
+    "signup",
+    formData,
+    async (): Promise<AuthActionState> => {
+      const passwordHash = await hashPassword(parsed.data.password);
+      let userId: string;
 
-  try {
-    const user = await db.user.create({
-      data: {
-        name: parsed.data.name,
-        email: parsed.data.email,
-        passwordHash,
-      },
-      select: { id: true },
-    });
-    userId = user.id;
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return {
-        fieldErrors: {
-          email: [
-            "An account already exists with this email. Sign in instead or reset your password.",
-          ],
-        },
-      };
-    }
+      try {
+        const user = await db.user.create({
+          data: {
+            name: parsed.data.name,
+            email: parsed.data.email,
+            passwordHash,
+          },
+          select: { id: true },
+        });
+        userId = user.id;
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          return {
+            fieldErrors: {
+              email: [
+                "An account already exists with this email. Sign in instead or reset your password.",
+              ],
+            },
+          };
+        }
 
-    throw error;
-  }
+        throw error;
+      }
 
-  const token = await issueAuthToken(userId, AuthTokenType.EMAIL_VERIFICATION);
+      const token = await issueAuthToken(
+        userId,
+        AuthTokenType.EMAIL_VERIFICATION,
+      );
 
-  try {
-    await sendVerificationEmail(parsed.data.email, token);
-  } catch {
-    return {
-      error:
-        "Your account was created, but the verification email could not be sent. Request a new link below.",
-    };
-  }
+      try {
+        await sendVerificationEmail(parsed.data.email, token);
+      } catch {
+        return {
+          error:
+            "Your account was created, but the verification email could not be sent. Request a new link below.",
+        };
+      }
 
-  redirect("/check-email?type=verification");
+      redirect("/check-email?type=verification");
+    },
+  );
+
+  return result.allowed ? result.value : protectionError(result.reason);
 }
 
 export async function resendVerificationAction(
@@ -169,29 +233,38 @@ export async function resendVerificationAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  if (authCapabilities.email) {
-    const user = await db.user.findUnique({
-      where: { email: parsed.data.email },
-      select: { id: true, emailVerified: true },
-    });
+  const result = await protect(
+    "resend-verification",
+    formData,
+    async (): Promise<AuthActionState> => {
+      if (authCapabilities.email) {
+        const user = await db.user.findUnique({
+          where: { email: parsed.data.email },
+          select: { id: true, emailVerified: true },
+        });
 
-    if (user && !user.emailVerified) {
-      try {
-        const token = await issueAuthToken(
-          user.id,
-          AuthTokenType.EMAIL_VERIFICATION,
-        );
-        await sendVerificationEmail(parsed.data.email, token);
-      } catch {
-        // Keep the response indistinguishable from an unknown email address.
+        if (user && !user.emailVerified) {
+          try {
+            const token = await issueAuthToken(
+              user.id,
+              AuthTokenType.EMAIL_VERIFICATION,
+            );
+            await sendVerificationEmail(parsed.data.email, token);
+          } catch {
+            // Keep the response indistinguishable from an unknown email address.
+          }
+        }
       }
-    }
-  }
 
-  return {
-    success:
-      "If that address has an unverified account, a new link has been sent.",
-  };
+      return {
+        success:
+          "If that address has an unverified account, a new link has been sent.",
+      };
+    },
+    parsed.data.email,
+  );
+
+  return result.allowed ? result.value : protectionError(result.reason);
 }
 
 export async function forgotPasswordAction(
@@ -204,34 +277,43 @@ export async function forgotPasswordAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  if (authCapabilities.email) {
-    const user = await db.user.findUnique({
-      where: { email: parsed.data.email },
-      select: {
-        id: true,
-        email: true,
-        emailVerified: true,
-        passwordHash: true,
-      },
-    });
+  const result = await protect(
+    "forgot-password",
+    formData,
+    async (): Promise<AuthActionState> => {
+      if (authCapabilities.email) {
+        const user = await db.user.findUnique({
+          where: { email: parsed.data.email },
+          select: {
+            id: true,
+            email: true,
+            emailVerified: true,
+            passwordHash: true,
+          },
+        });
 
-    if (user?.emailVerified && user.passwordHash) {
-      try {
-        const token = await issueAuthToken(
-          user.id,
-          AuthTokenType.PASSWORD_RESET,
-        );
-        await sendPasswordResetEmail(user.email, token);
-      } catch {
-        // Keep the response indistinguishable from an unknown email address.
+        if (user?.emailVerified && user.passwordHash) {
+          try {
+            const token = await issueAuthToken(
+              user.id,
+              AuthTokenType.PASSWORD_RESET,
+            );
+            await sendPasswordResetEmail(user.email, token);
+          } catch {
+            // Keep the response indistinguishable from an unknown email address.
+          }
+        }
       }
-    }
-  }
 
-  return {
-    success:
-      "If that address has a password account, a reset link has been sent.",
-  };
+      return {
+        success:
+          "If that address has a password account, a reset link has been sent.",
+      };
+    },
+    parsed.data.email,
+  );
+
+  return result.allowed ? result.value : protectionError(result.reason);
 }
 
 export async function resetPasswordAction(

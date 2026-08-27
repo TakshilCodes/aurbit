@@ -19,6 +19,7 @@ export default function ForgotPasswordPage() {
         action={forgotPasswordAction}
         buttonLabel="Send reset link"
         pendingLabel="Sending link…"
+        turnstileAction="forgot-password"
       />
       <AuthFooter>
         <p>

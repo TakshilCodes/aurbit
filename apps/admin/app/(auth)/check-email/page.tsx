@@ -31,6 +31,7 @@ export default async function CheckEmailPage({
           action={resendVerificationAction}
           buttonLabel="Resend verification link"
           pendingLabel="Sending link…"
+          turnstileAction="resend-verification"
         />
       ) : null}
       <AuthFooter>
