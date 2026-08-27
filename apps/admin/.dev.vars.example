@@ -10,5 +10,7 @@ AUTH_EMAIL_FROM=
 # Required for authentication abuse protection. The site key is public.
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+
+# Cloudflare preview uses the HTTP-compatible Upstash backend.
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=

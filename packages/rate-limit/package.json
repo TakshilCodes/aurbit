@@ -1,0 +1,24 @@
+{
+  "name": "@aurbit/rate-limit",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@aurbit/eslint-config": "workspace:*",
+    "@aurbit/typescript-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@redis/client": "^6.2.1"
+  }
+}

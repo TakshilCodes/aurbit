@@ -1,3 +1,8 @@
+import {
+  checkRateLimit,
+  getRateLimitStore,
+  type RateLimitStore,
+} from "@aurbit/rate-limit";
 import { headers } from "next/headers";
 
 const SITEVERIFY_URL =
@@ -45,15 +50,6 @@ type TurnstileResponse = {
   };
 };
 
-const RATE_LIMIT_SCRIPT = `
-local current = redis.call("INCR", KEYS[1])
-if current == 1 then
-  redis.call("EXPIRE", KEYS[1], ARGV[1])
-end
-local ttl = redis.call("TTL", KEYS[1])
-return {current, ttl}
-`;
-
 function requiredEnvironmentValue(name: string) {
   const value = process.env[name]?.trim();
 
@@ -93,13 +89,8 @@ export async function getClientIp() {
 
 export async function checkAuthRateLimit(
   input: ProtectionInput,
-  fetchImplementation: Fetch = fetch,
+  store: RateLimitStore = getRateLimitStore(),
 ) {
-  const url = requiredEnvironmentValue("UPSTASH_REDIS_REST_URL").replace(
-    /\/$/,
-    "",
-  );
-  const token = requiredEnvironmentValue("UPSTASH_REDIS_REST_TOKEN");
   const limit = AUTH_RATE_LIMITS[input.flow];
   const normalizedEmail =
     input.flow === "signup" ? "" : (input.email?.trim().toLowerCase() ?? "");
@@ -107,38 +98,15 @@ export async function checkAuthRateLimit(
     `${input.flow}\n${input.ip}\n${normalizedEmail}`,
   );
   const key = `aurbit:auth:${input.flow}:${identifier}`;
-  const response = await fetchImplementation(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify([
-      "EVAL",
-      RATE_LIMIT_SCRIPT,
-      "1",
+
+  return checkRateLimit(
+    {
       key,
-      String(limit.windowSeconds),
-    ]),
-    cache: "no-store",
-    signal: requestSignal(),
-  });
-
-  if (!response.ok) {
-    throw new Error("Authentication rate limit request failed");
-  }
-
-  const result = (await response.json()) as {
-    result?: [number, number];
-    error?: string;
-  };
-  const attempts = Number(result.result?.[0]);
-
-  if (result.error || !Number.isFinite(attempts)) {
-    throw new Error("Authentication rate limit response was invalid");
-  }
-
-  return attempts <= limit.attempts;
+      limit: limit.attempts,
+      windowSeconds: limit.windowSeconds,
+    },
+    store,
+  );
 }
 
 export async function verifyTurnstileToken(

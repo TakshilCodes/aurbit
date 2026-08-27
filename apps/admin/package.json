@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@aurbit/db": "workspace:*",
+    "@aurbit/rate-limit": "workspace:^",
     "@aurbit/ui": "workspace:*",
     "@auth/prisma-adapter": "^2.11.3",
     "@opennextjs/cloudflare": "^1.20.2",

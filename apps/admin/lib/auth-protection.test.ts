@@ -1,3 +1,4 @@
+import type { RateLimitStore } from "@aurbit/rate-limit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AUTH_RATE_LIMITS,
@@ -18,8 +19,6 @@ describe("authentication abuse protection", () => {
   beforeEach(() => {
     process.env.AUTH_URL = "https://admin.aurbit.takshil.in";
     process.env.TURNSTILE_SECRET_KEY = "turnstile-secret";
-    process.env.UPSTASH_REDIS_REST_URL = "https://example.upstash.io";
-    process.env.UPSTASH_REDIS_REST_TOKEN = "upstash-token";
   });
 
   afterEach(() => {
@@ -134,21 +133,15 @@ describe("authentication abuse protection", () => {
   });
 
   it("uses the configured limit and hashes IP/email key material", async () => {
-    const upstash = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ result: [10, 600] }), { status: 200 }),
-      );
+    const incrementFixedWindow = vi.fn<RateLimitStore["incrementFixedWindow"]>(
+      () => Promise.resolve({ count: 10, ttlSeconds: 600 }),
+    );
+    const store: RateLimitStore = { incrementFixedWindow };
 
-    await expect(checkAuthRateLimit(baseInput, upstash)).resolves.toBe(true);
-    const [url, request] = upstash.mock.calls[0] ?? [];
-    expect(typeof request?.body).toBe("string");
-    const command = JSON.parse(request?.body as string) as unknown[];
-    const key = String(command[3]);
+    await expect(checkAuthRateLimit(baseInput, store)).resolves.toBe(true);
+    const [key, windowSeconds] = incrementFixedWindow.mock.calls[0] ?? [];
 
-    expect(url).toBe("https://example.upstash.io");
-    expect(command[0]).toBe("EVAL");
-    expect(command[4]).toBe(String(AUTH_RATE_LIMITS.login.windowSeconds));
+    expect(windowSeconds).toBe(AUTH_RATE_LIMITS.login.windowSeconds);
     expect(key).toMatch(/^aurbit:auth:login:[a-f0-9]{64}$/);
     expect(key).not.toContain(baseInput.ip);
     expect(key).not.toContain(baseInput.email);
