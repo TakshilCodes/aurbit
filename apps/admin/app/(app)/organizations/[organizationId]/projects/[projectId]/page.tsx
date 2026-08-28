@@ -25,7 +25,7 @@ export default async function ProjectPage({ params }: PageProps) {
   return (
     <section className="mx-auto w-full max-w-2xl" aria-labelledby="page-title">
       <PageHeader
-        description="Project identity and intake configuration for this organization."
+        description="Project identity and intake configuration for this workspace."
         eyebrow={organization.name}
         title={project.name}
       />

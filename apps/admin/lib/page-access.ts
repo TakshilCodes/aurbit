@@ -20,23 +20,27 @@ function handlePageAccessError(error: unknown): never {
   throw error;
 }
 
-export async function requirePageUser() {
+export async function requirePageData<Result>(
+  operation: () => Promise<Result>,
+) {
   try {
-    return await requireUser();
+    return await operation();
   } catch (error) {
     return handlePageAccessError(error);
   }
+}
+
+export function requirePageUser() {
+  return requirePageData(requireUser);
 }
 
 export async function requirePageOrganization(
   organizationId: string,
   allowedRoles?: readonly OrganizationRole[],
 ) {
-  try {
-    return await requireOrganizationMembership(organizationId, allowedRoles);
-  } catch (error) {
-    return handlePageAccessError(error);
-  }
+  return requirePageData(() =>
+    requireOrganizationMembership(organizationId, allowedRoles),
+  );
 }
 
 export async function requirePageProject(
@@ -44,9 +48,7 @@ export async function requirePageProject(
   organizationId: string,
   allowedRoles?: readonly OrganizationRole[],
 ) {
-  try {
-    return await requireProjectAccess(projectId, organizationId, allowedRoles);
-  } catch (error) {
-    return handlePageAccessError(error);
-  }
+  return requirePageData(() =>
+    requireProjectAccess(projectId, organizationId, allowedRoles),
+  );
 }

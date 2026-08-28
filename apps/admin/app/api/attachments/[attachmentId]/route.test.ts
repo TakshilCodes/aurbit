@@ -53,6 +53,7 @@ describe("authenticated report attachment access", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("image/png");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("content-disposition")).toMatch(/^inline;/);
     expect(mocks.findAttachment).toHaveBeenCalledWith({
       where: {
         id: "attachment_1",
@@ -74,6 +75,16 @@ describe("authenticated report attachment access", () => {
     expect(mocks.getObject).toHaveBeenCalledWith(
       "bug-reports/safe-submission/safe-object.png",
     );
+  });
+
+  it("uses an attachment disposition for explicit downloads", async () => {
+    const response = await GET(
+      new Request("https://admin.example?download=1"),
+      context,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-disposition")).toMatch(/^attachment;/);
   });
 
   it("does not read R2 when the attachment is outside the user's organizations", async () => {

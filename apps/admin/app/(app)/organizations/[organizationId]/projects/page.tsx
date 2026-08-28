@@ -35,7 +35,7 @@ export default async function ProjectsPage({ params }: PageProps) {
     <section className="mx-auto w-full max-w-5xl" aria-labelledby="page-title">
       <PageHeader
         action={createAction}
-        description="Projects separate bug intake configuration and public keys within this organization."
+        description="Projects separate bug intake configuration and public keys within this workspace."
         eyebrow={organization.name}
         title="Projects"
       />
@@ -59,8 +59,8 @@ export default async function ProjectsPage({ params }: PageProps) {
           action={createAction}
           description={
             canManage
-              ? "Create the first project for this organization. Aurbit will generate its public project key automatically."
-              : "An organization owner or admin can create the first project."
+              ? "Create the first project for this workspace. Aurbit will generate its public project key automatically."
+              : "A workspace owner or admin can create the first project."
           }
           title="No projects yet"
         />

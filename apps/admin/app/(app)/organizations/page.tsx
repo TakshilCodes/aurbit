@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { requirePageUser } from "../../../lib/page-access";
 
-export const metadata = { title: "Organizations · Aurbit" };
+export const metadata = { title: "Workspaces · Aurbit" };
 
 export default async function OrganizationsPage() {
   const user = await requirePageUser();
@@ -23,7 +23,7 @@ export default async function OrganizationsPage() {
 
   const createAction = (
     <Link className={buttonStyles()} href="/organizations/new">
-      New organization
+      New workspace
     </Link>
   );
 
@@ -31,9 +31,9 @@ export default async function OrganizationsPage() {
     <section className="mx-auto w-full max-w-5xl" aria-labelledby="page-title">
       <PageHeader
         action={createAction}
-        description="Organizations are isolated tenant workspaces for your teams and projects."
+        description="Workspaces keep each team and its projects isolated."
         eyebrow="Workspace"
-        title="Organizations"
+        title="Workspaces"
       />
       {memberships.length ? (
         <ResourceList>
@@ -55,7 +55,7 @@ export default async function OrganizationsPage() {
         <EmptyState
           action={createAction}
           description="Create your first workspace to start organizing projects and invite your team later."
-          title="No organizations yet"
+          title="No workspaces yet"
         />
       )}
     </section>
