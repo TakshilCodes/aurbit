@@ -2,7 +2,7 @@ import { Card } from "@aurbit/ui/card";
 import { PageHeader } from "@aurbit/ui/page-header";
 import { OrganizationForm } from "../../resource-forms";
 
-export const metadata = { title: "New organization · Aurbit" };
+export const metadata = { title: "New workspace · Aurbit" };
 
 export default function NewOrganizationPage() {
   return (
@@ -10,7 +10,7 @@ export default function NewOrganizationPage() {
       <PageHeader
         description="Create a private workspace for your company. You will become its owner."
         eyebrow="Get started"
-        title="Create an organization"
+        title="Create a workspace"
       />
       <Card className="overflow-hidden">
         <div className="border-b border-border bg-surface px-6 py-5 sm:px-7">
@@ -27,7 +27,7 @@ export default function NewOrganizationPage() {
         </div>
       </Card>
       <p className="mt-4 text-xs leading-5 text-muted">
-        Organization data and access remain isolated from every other Aurbit
+        Workspace data and access remain isolated from every other Aurbit
         workspace.
       </p>
     </section>

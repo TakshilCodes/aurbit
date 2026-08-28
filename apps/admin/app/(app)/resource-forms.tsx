@@ -78,10 +78,10 @@ export function OrganizationForm() {
       <NameField
         error={state.fieldErrors?.name}
         id="organization-name"
-        label="Organization name"
+        label="Workspace name"
       />
       <ResourceMessage state={state} />
-      <SubmitButton>Create organization</SubmitButton>
+      <SubmitButton>Create workspace</SubmitButton>
     </form>
   );
 }

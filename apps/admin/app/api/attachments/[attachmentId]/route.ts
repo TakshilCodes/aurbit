@@ -9,15 +9,16 @@ type RouteContext = {
   params: Promise<{ attachmentId: string }>;
 };
 
-function contentDisposition(fileName: string) {
+function contentDisposition(fileName: string, download: boolean) {
   const asciiName = fileName
     .replace(/[^\x20-\x7e]/g, "_")
     .replace(/["\\]/g, "_");
 
-  return `inline; filename="${asciiName || "attachment"}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+  const disposition = download ? "attachment" : "inline";
+  return `${disposition}; filename="${asciiName || "attachment"}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
   try {
     const [{ attachmentId }, user] = await Promise.all([params, requireUser()]);
     const attachment = await db.attachment.findFirst({
@@ -49,10 +50,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
       return new Response("Not found", { status: 404 });
     }
 
+    const download = new URL(request.url).searchParams.get("download") === "1";
+
     return new Response(object.body, {
       headers: {
         "Cache-Control": "private, no-store",
-        "Content-Disposition": contentDisposition(attachment.fileName),
+        "Content-Disposition": contentDisposition(
+          attachment.fileName,
+          download,
+        ),
         "Content-Length": String(attachment.size),
         "Content-Type": attachment.contentType,
         "X-Content-Type-Options": "nosniff",
