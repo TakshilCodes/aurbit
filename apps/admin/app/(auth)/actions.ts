@@ -102,12 +102,14 @@ export async function loginAction(
   return result.allowed ? result.value : protectionError(result.reason);
 }
 
-export async function googleLoginAction() {
+export async function googleLoginAction(formData: FormData) {
   if (!authCapabilities.google) {
     redirect("/auth-error");
   }
 
-  await signIn("google", { redirectTo: "/" });
+  await signIn("google", {
+    redirectTo: safeRedirectPath(formData.get("redirectTo")),
+  });
 }
 
 export async function magicLinkAction(
@@ -168,6 +170,7 @@ export async function signupAction(
     return { error: "Email verification is not configured yet." };
   }
 
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
   const result = await protect(
     "signup",
     formData,
@@ -208,7 +211,7 @@ export async function signupAction(
       );
 
       try {
-        await sendVerificationEmail(parsed.data.email, token);
+        await sendVerificationEmail(parsed.data.email, token, redirectTo);
       } catch {
         return {
           error:
@@ -216,7 +219,12 @@ export async function signupAction(
         };
       }
 
-      redirect("/check-email?type=verification");
+      redirect(
+        `/check-email?${new URLSearchParams({
+          callbackUrl: redirectTo,
+          type: "verification",
+        }).toString()}`,
+      );
     },
   );
 
@@ -233,6 +241,7 @@ export async function resendVerificationAction(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
+  const redirectTo = safeRedirectPath(formData.get("redirectTo"));
   const result = await protect(
     "resend-verification",
     formData,
@@ -249,7 +258,7 @@ export async function resendVerificationAction(
               user.id,
               AuthTokenType.EMAIL_VERIFICATION,
             );
-            await sendVerificationEmail(parsed.data.email, token);
+            await sendVerificationEmail(parsed.data.email, token, redirectTo);
           } catch {
             // Keep the response indistinguishable from an unknown email address.
           }

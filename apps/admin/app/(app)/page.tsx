@@ -1,6 +1,7 @@
 import { db } from "@aurbit/db";
 import { redirect } from "next/navigation";
 import { requirePageUser } from "../../lib/page-access";
+import { listPendingWorkspaceInvitesForUser } from "../../lib/workspace-invitations";
 
 export default async function AppHomePage() {
   const user = await requirePageUser();
@@ -10,7 +11,10 @@ export default async function AppHomePage() {
     orderBy: { createdAt: "asc" },
   });
 
-  if (!memberships.length) redirect("/organizations/new");
+  if (!memberships.length) {
+    const pendingInvites = await listPendingWorkspaceInvitesForUser(user.email);
+    redirect(pendingInvites.length ? "/organizations" : "/organizations/new");
+  }
 
   const activeOrganizationId = memberships.some(
     ({ organizationId }) => organizationId === user.activeOrganizationId,

@@ -10,16 +10,21 @@ import {
 } from "@aurbit/ui/resource-list";
 import Link from "next/link";
 import { requirePageUser } from "../../../lib/page-access";
+import { listPendingWorkspaceInvitesForUser } from "../../../lib/workspace-invitations";
+import { AcceptDashboardInviteForm } from "./accept-dashboard-invite-form";
 
 export const metadata = { title: "Workspaces · Aurbit" };
 
 export default async function OrganizationsPage() {
   const user = await requirePageUser();
-  const memberships = await db.organizationMember.findMany({
-    where: { userId: user.id },
-    include: { organization: true },
-    orderBy: { organization: { name: "asc" } },
-  });
+  const [memberships, pendingInvites] = await Promise.all([
+    db.organizationMember.findMany({
+      where: { userId: user.id },
+      include: { organization: true },
+      orderBy: { organization: { name: "asc" } },
+    }),
+    listPendingWorkspaceInvitesForUser(user.email),
+  ]);
 
   const createAction = (
     <Link className={buttonStyles()} href="/organizations/new">
@@ -35,6 +40,48 @@ export default async function OrganizationsPage() {
         eyebrow="Workspace"
         title="Workspaces"
       />
+      {pendingInvites.length ? (
+        <section className="mb-10" aria-labelledby="pending-invitations-title">
+          <div className="mb-3">
+            <h2
+              className="text-sm font-semibold text-primary"
+              id="pending-invitations-title"
+            >
+              Pending invitations
+            </h2>
+            <p className="mt-1 text-sm text-secondary">
+              Invitations sent to your verified account email.
+            </p>
+          </div>
+          <ResourceList>
+            {pendingInvites.map((invite) => {
+              const inviterName =
+                invite.invitedBy.name?.trim() || invite.invitedBy.email;
+              return (
+                <div
+                  className={resourceRowStyles(
+                    "max-sm:grid max-sm:grid-cols-1",
+                  )}
+                  key={invite.id}
+                >
+                  <ResourceIdentity
+                    meta={`Invited by ${inviterName} · Expires ${invite.expiresAt.toLocaleDateString()}`}
+                    title={invite.organization.name}
+                  />
+                  <div className="flex shrink-0 items-center gap-3 max-sm:w-full max-sm:justify-between">
+                    <Badge>{invite.role.toLowerCase()}</Badge>
+                    <AcceptDashboardInviteForm inviteId={invite.id} />
+                  </div>
+                </div>
+              );
+            })}
+          </ResourceList>
+        </section>
+      ) : null}
+
+      <h2 className="mb-3 text-sm font-semibold text-primary">
+        Your workspaces
+      </h2>
       {memberships.length ? (
         <ResourceList>
           {memberships.map(({ organization, role }) => (

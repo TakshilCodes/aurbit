@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   createAudit: vi.fn(),
   createNote: vi.fn(),
+  deleteNotes: vi.fn(),
   findAssignee: vi.fn(),
   findReport: vi.fn(),
+  findNote: vi.fn(),
   requireMembership: vi.fn(),
   transaction: vi.fn(),
   updateReport: vi.fn(),
@@ -24,7 +26,9 @@ vi.mock("./authorization", () => ({
 import { AuthenticationError } from "./authorization";
 import {
   createInternalNote,
+  deleteInternalNote,
   INTERNAL_NOTE_MAX_LENGTH,
+  InternalNoteDeletionError,
   InvalidReportAssigneeError,
   updateReportTriage,
 } from "./report-triage";
@@ -53,6 +57,8 @@ beforeEach(() => {
     assigneeMemberId: null,
     assignee: null,
   });
+  mocks.findNote.mockResolvedValue({ id: "note_1", authorId: "user_1" });
+  mocks.deleteNotes.mockResolvedValue({ count: 1 });
   mocks.createNote.mockResolvedValue({
     id: "note_1",
     body: "Reproduced on the latest release.",
@@ -66,7 +72,11 @@ beforeEach(() => {
           findFirst: mocks.findReport,
           update: mocks.updateReport,
         },
-        internalNote: { create: mocks.createNote },
+        internalNote: {
+          create: mocks.createNote,
+          deleteMany: mocks.deleteNotes,
+          findFirst: mocks.findNote,
+        },
         organizationMember: { findFirst: mocks.findAssignee },
       }),
   );
@@ -232,6 +242,63 @@ describe("report triage", () => {
       targetId: "note_1",
       metadata: { reportId },
     });
+  });
+
+  it("lets a MEMBER delete their own tenant-scoped note and audits it", async () => {
+    await expect(
+      deleteInternalNote(organizationId, reportId, "note_1"),
+    ).resolves.toEqual({ id: "note_1" });
+
+    expect(mocks.findNote).toHaveBeenCalledWith({
+      where: { id: "note_1", organizationId, bugReportId: reportId },
+      select: { id: true, authorId: true },
+    });
+    expect(mocks.deleteNotes).toHaveBeenCalledWith({
+      where: { id: "note_1", organizationId, bugReportId: reportId },
+    });
+    const auditInput = mocks.createAudit.mock.calls.at(-1)?.[0] as {
+      data: Record<string, unknown>;
+    };
+    expect(auditInput.data).toMatchObject({
+      action: "report.internal_note_deleted",
+      actorUserId: "user_1",
+      metadata: { reportId },
+      organizationId,
+      targetId: "note_1",
+    });
+  });
+
+  it("prevents a MEMBER from deleting another member's note", async () => {
+    mocks.findNote.mockResolvedValue({ id: "note_2", authorId: "user_2" });
+
+    await expect(
+      deleteInternalNote(organizationId, reportId, "note_2"),
+    ).rejects.toBeInstanceOf(InternalNoteDeletionError);
+    expect(mocks.deleteNotes).not.toHaveBeenCalled();
+    expect(mocks.createAudit).not.toHaveBeenCalled();
+  });
+
+  it("lets an ADMIN delete another member's note", async () => {
+    mocks.requireMembership.mockResolvedValue({
+      membership: { role: "ADMIN" },
+      user: { id: "admin_1" },
+    });
+    mocks.findNote.mockResolvedValue({ id: "note_2", authorId: "user_2" });
+
+    await expect(
+      deleteInternalNote(organizationId, reportId, "note_2"),
+    ).resolves.toEqual({ id: "note_2" });
+    expect(mocks.deleteNotes).toHaveBeenCalledOnce();
+  });
+
+  it("does not delete a cross-tenant or mismatched report note", async () => {
+    mocks.findNote.mockResolvedValue(null);
+
+    await expect(
+      deleteInternalNote(organizationId, "report_other", "note_1"),
+    ).resolves.toBeNull();
+    expect(mocks.deleteNotes).not.toHaveBeenCalled();
+    expect(mocks.createAudit).not.toHaveBeenCalled();
   });
 
   it("does not create or audit a note for a cross-tenant report", async () => {

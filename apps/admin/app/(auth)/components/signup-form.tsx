@@ -17,7 +17,13 @@ import { TurnstileWidget } from "@aurbit/turnstile/widget";
 const initialState: AuthActionState = {};
 const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
-export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function SignupForm({
+  googleEnabled,
+  redirectTo,
+}: {
+  googleEnabled: boolean;
+  redirectTo: string;
+}) {
   const [state, formAction, pending] = useActionState(
     signupAction,
     initialState,
@@ -33,6 +39,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
       {googleEnabled ? (
         <>
           <form action={googleLoginAction}>
+            <input name="redirectTo" type="hidden" value={redirectTo} />
             <Button className="w-full" type="submit" variant="secondary">
               <GoogleIcon />
               Sign up with Google
@@ -43,6 +50,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
       ) : null}
 
       <form action={formAction} className="grid gap-4" noValidate>
+        <input name="redirectTo" type="hidden" value={redirectTo} />
         <FormField
           error={state.fieldErrors?.name}
           id="signup-name"

@@ -49,6 +49,7 @@ model User {
   memberships          OrganizationMember[]
   internalNotes        InternalNote[]
   auditEntries         AuditLog[]
+  workspaceInvitesSent OrganizationInvite[] @relation("WorkspaceInviteInviter")
   createdAt            DateTime             @default(now()) @map("created_at")
   updatedAt            DateTime             @updatedAt @map("updated_at")
 
@@ -106,6 +107,7 @@ model Organization {
   memberships OrganizationMember[]
   projects    Project[]
   auditLogs   AuditLog[]
+  invites     OrganizationInvite[]
   createdAt   DateTime             @default(now()) @map("created_at")
   updatedAt   DateTime             @updatedAt @map("updated_at")
 
@@ -126,6 +128,27 @@ model OrganizationMember {
   @@unique([organizationId, userId])
   @@index([userId])
   @@map("organization_members")
+}
+
+model OrganizationInvite {
+  id              String           @id @default(cuid())
+  organizationId  String           @map("organization_id")
+  email           String           @db.VarChar(254)
+  role            OrganizationRole
+  tokenHash       String           @unique @map("token_hash") @db.VarChar(64)
+  pendingKey      String?          @unique @map("pending_key") @db.VarChar(400)
+  expiresAt       DateTime         @map("expires_at")
+  acceptedAt      DateTime?        @map("accepted_at")
+  revokedAt       DateTime?        @map("revoked_at")
+  invitedByUserId String           @map("invited_by_user_id")
+  lastSentAt      DateTime         @default(now()) @map("last_sent_at")
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy       User             @relation("WorkspaceInviteInviter", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, email])
+  @@map("organization_invites")
 }
 
 model Project {

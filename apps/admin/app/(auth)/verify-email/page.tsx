@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { verifyEmailToken } from "../../../lib/email-verification";
+import { safeRedirectPath } from "../../../lib/validation";
 import { AuthFooter } from "../components/auth-patterns";
 
 export const metadata: Metadata = { title: "Verify email | Aurbit" };
@@ -12,13 +13,15 @@ export const dynamic = "force-dynamic";
 export default async function VerifyEmailPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; token?: string }>;
 }) {
-  const { token = "" } = await searchParams;
-  const verified = await verifyEmailToken(token);
+  const params = await searchParams;
+  const redirectTo = safeRedirectPath(params.callbackUrl ?? null);
+  const verified = await verifyEmailToken(params.token ?? "");
+  const authQuery = new URLSearchParams({ callbackUrl: redirectTo }).toString();
 
   if (verified) {
-    redirect("/login?verified=1");
+    redirect(`/login?verified=1&${authQuery}`);
   }
 
   return (
@@ -31,12 +34,12 @@ export default async function VerifyEmailPage({
       <Alert role="alert">This verification link is invalid or expired.</Alert>
       <AuthFooter>
         <p>
-          <Link href="/check-email?type=verification">
+          <Link href={`/check-email?type=verification&${authQuery}`}>
             Request another link
           </Link>
         </p>
         <p>
-          <Link href="/login">Back to sign in</Link>
+          <Link href={`/login?${authQuery}`}>Back to sign in</Link>
         </p>
       </AuthFooter>
     </>
