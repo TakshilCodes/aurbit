@@ -46,6 +46,7 @@ export function LoginForm({
       {googleEnabled ? (
         <>
           <form action={googleLoginAction}>
+            <input name="redirectTo" type="hidden" value={redirectTo} />
             <Button className="w-full" type="submit" variant="secondary">
               <GoogleIcon />
               Continue with Google

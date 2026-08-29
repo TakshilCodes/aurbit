@@ -8,7 +8,11 @@ import { Textarea } from "@aurbit/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createInternalNoteAction, updateReportTriageAction } from "./actions";
+import {
+  createInternalNoteAction,
+  deleteInternalNoteAction,
+  updateReportTriageAction,
+} from "./actions";
 
 type Status = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -224,11 +228,15 @@ export function ReportTriageControls({
 }
 
 export function InternalNotes({
+  canManageAllNotes,
+  currentUserId,
   initialNotes,
   maxLength,
   organizationId,
   reportId,
 }: {
+  canManageAllNotes: boolean;
+  currentUserId: string;
   initialNotes: Note[];
   maxLength: number;
   organizationId: string;
@@ -238,7 +246,7 @@ export function InternalNotes({
   const [body, setBody] = useState("");
   const [notes, setNotes] = useState(initialNotes);
   const [success, setSuccess] = useState<string | null>(null);
-  const mutation = useMutation<{ note: Note }, Error, string>({
+  const createMutation = useMutation<{ note: Note }, Error, string>({
     mutationFn: async (noteBody) => {
       const result = await createInternalNoteAction(organizationId, reportId, {
         body: noteBody,
@@ -255,6 +263,25 @@ export function InternalNotes({
       router.refresh();
     },
   });
+  const deleteMutation = useMutation<{ id: string }, Error, string>({
+    mutationFn: async (noteId) => {
+      const result = await deleteInternalNoteAction(
+        organizationId,
+        reportId,
+        noteId,
+      );
+
+      if (!result.success) throw new Error(result.error);
+      return { id: result.note.id };
+    },
+    onMutate: () => setSuccess(null),
+    onSuccess: ({ id }) => {
+      setNotes((current) => current.filter((note) => note.id !== id));
+      setSuccess("Internal note deleted.");
+      router.refresh();
+    },
+  });
+  const error = createMutation.error ?? deleteMutation.error;
 
   return (
     <Card className="overflow-hidden">
@@ -270,12 +297,12 @@ export function InternalNotes({
           className="grid gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            if (body.trim()) mutation.mutate(body);
+            if (body.trim()) createMutation.mutate(body);
           }}
         >
           <Textarea
             aria-label="New internal note"
-            disabled={mutation.isPending}
+            disabled={createMutation.isPending}
             maxLength={maxLength}
             onChange={(event) => setBody(event.target.value)}
             placeholder="Add context for your team…"
@@ -286,20 +313,18 @@ export function InternalNotes({
               {body.length.toLocaleString()} / {maxLength.toLocaleString()}
             </span>
             <Button
-              disabled={mutation.isPending || !body.trim()}
+              disabled={createMutation.isPending || !body.trim()}
               size="sm"
               type="submit"
             >
-              {mutation.isPending ? "Adding…" : "Add note"}
+              {createMutation.isPending ? "Adding…" : "Add note"}
             </Button>
           </div>
           <p
             aria-live="polite"
-            className={
-              mutation.error ? "text-xs text-danger" : "text-xs text-muted"
-            }
+            className={error ? "text-xs text-danger" : "text-xs text-muted"}
           >
-            {mutation.error?.message || success}
+            {error?.message || success}
           </p>
         </form>
 
@@ -307,25 +332,50 @@ export function InternalNotes({
           <ol className="divide-y divide-border border-t border-border">
             {notes.map((note) => {
               const authorName = note.author.name?.trim() || note.author.email;
+              const canDelete =
+                canManageAllNotes || note.author.id === currentUserId;
               return (
                 <li className="grid gap-3 py-4" key={note.id}>
-                  <div className="flex items-center gap-3">
-                    <Avatar
-                      name={authorName}
-                      size="sm"
-                      src={note.author.image}
-                    />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-primary">
-                        {authorName}
-                      </p>
-                      <time
-                        className="text-xs text-muted"
-                        dateTime={note.createdAt}
-                      >
-                        {formatNoteDate(note.createdAt)}
-                      </time>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar
+                        name={authorName}
+                        size="sm"
+                        src={note.author.image}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-primary">
+                          {authorName}
+                        </p>
+                        <time
+                          className="text-xs text-muted"
+                          dateTime={note.createdAt}
+                        >
+                          {formatNoteDate(note.createdAt)}
+                        </time>
+                      </div>
                     </div>
+                    {canDelete ? (
+                      <Button
+                        aria-label={`Delete note by ${authorName}`}
+                        className="text-danger hover:text-danger"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              "Delete this internal note? This cannot be undone.",
+                            )
+                          ) {
+                            deleteMutation.mutate(note.id);
+                          }
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Delete
+                      </Button>
+                    ) : null}
                   </div>
                   <p className="whitespace-pre-wrap wrap-break-word text-sm leading-6 text-secondary">
                     {note.body}

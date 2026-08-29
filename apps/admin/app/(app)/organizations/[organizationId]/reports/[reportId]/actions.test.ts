@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createNote: vi.fn(),
+  deleteNote: vi.fn(),
   updateTriage: vi.fn(),
 }));
 
 vi.mock("../../../../../../lib/report-triage", () => ({
   createInternalNote: mocks.createNote,
+  deleteInternalNote: mocks.deleteNote,
+  InternalNoteDeletionError: class InternalNoteDeletionError extends Error {},
   InvalidReportAssigneeError: class InvalidReportAssigneeError extends Error {},
   updateReportTriage: mocks.updateTriage,
 }));
@@ -16,7 +19,11 @@ vi.mock("../../../../../../lib/authorization", () => ({
   AuthorizationError: class AuthorizationError extends Error {},
 }));
 
-import { createInternalNoteAction, updateReportTriageAction } from "./actions";
+import {
+  createInternalNoteAction,
+  deleteInternalNoteAction,
+  updateReportTriageAction,
+} from "./actions";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -79,6 +86,17 @@ describe("report triage Server Actions", () => {
       }),
     ).resolves.toMatchObject({
       note: { createdAt: "2026-08-28T12:00:00.000Z", id: "note_1" },
+      success: true,
+    });
+  });
+
+  it("returns a confirmed deleted note ID", async () => {
+    mocks.deleteNote.mockResolvedValue({ id: "note_1" });
+
+    await expect(
+      deleteInternalNoteAction("organization_1", "report_1", "note_1"),
+    ).resolves.toEqual({
+      note: { id: "note_1" },
       success: true,
     });
   });

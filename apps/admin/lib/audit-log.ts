@@ -2,12 +2,17 @@ import type { Prisma } from "@aurbit/db";
 
 export const AUDIT_ACTIONS = {
   INTERNAL_NOTE_CREATED: "report.internal_note_created",
+  INTERNAL_NOTE_DELETED: "report.internal_note_deleted",
   MEMBER_ADDED: "workspace.member_added",
   MEMBER_REMOVED: "workspace.member_removed",
   MEMBER_ROLE_CHANGED: "workspace.member_role_changed",
   REPORT_ASSIGNEE_CHANGED: "report.assignee_changed",
   REPORT_PRIORITY_CHANGED: "report.priority_changed",
   REPORT_STATUS_CHANGED: "report.status_changed",
+  WORKSPACE_INVITE_ACCEPTED: "workspace_invite_accepted",
+  WORKSPACE_INVITE_CREATED: "workspace_invite_created",
+  WORKSPACE_INVITE_RESENT: "workspace_invite_resent",
+  WORKSPACE_INVITE_REVOKED: "workspace_invite_revoked",
 } as const;
 
 type AuditClient = Pick<Prisma.TransactionClient, "auditLog">;
@@ -20,7 +25,11 @@ export function writeAuditLog(
     metadata?: Prisma.InputJsonObject;
     organizationId: string;
     targetId?: string | null;
-    targetType: "bug_report" | "internal_note" | "organization_member";
+    targetType:
+      | "bug_report"
+      | "internal_note"
+      | "organization_member"
+      | "workspace_invite";
   },
 ) {
   return client.auditLog.create({

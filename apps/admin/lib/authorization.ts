@@ -42,6 +42,7 @@ export async function requireUser() {
     select: {
       id: true,
       email: true,
+      emailVerified: true,
       image: true,
       name: true,
       activeOrganizationId: true,

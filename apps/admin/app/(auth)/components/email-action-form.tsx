@@ -22,11 +22,13 @@ export function EmailActionForm({
   buttonLabel,
   pendingLabel,
   turnstileAction,
+  redirectTo = "/",
 }: {
   action: EmailAction;
   buttonLabel: string;
   pendingLabel: string;
   turnstileAction: AuthProtectionFlow;
+  redirectTo?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [email, setEmail] = useState("");
@@ -34,6 +36,7 @@ export function EmailActionForm({
 
   return (
     <form action={formAction} className="grid gap-4" noValidate>
+      <input name="redirectTo" type="hidden" value={redirectTo} />
       <FormField
         error={state.fieldErrors?.email}
         id="email-action-address"

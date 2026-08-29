@@ -8,7 +8,6 @@ import { Button } from "@aurbit/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import downArrow from "../../public/icons/down-arrow.png";
 import { logoutAction, switchOrganizationAction } from "./actions";
 
 type WorkspaceMembership = {
@@ -47,11 +46,13 @@ export function AdminNavigation({
   activeOrganizationId,
   children,
   memberships,
+  pendingInviteCount,
   user,
 }: {
   activeOrganizationId?: string;
   children: React.ReactNode;
   memberships: WorkspaceMembership[];
+  pendingInviteCount: number;
   user: NavigationUser;
 }) {
   const pathname = usePathname();
@@ -147,7 +148,7 @@ export function AdminNavigation({
                 aria-hidden="true"
                 className="size-4 opacity-70 transition-transform group-open:rotate-180 motion-reduce:transition-none"
                 height={16}
-                src={downArrow}
+                src="/icons/down-arrow.png"
                 width={16}
               />
             </summary>
@@ -194,6 +195,18 @@ export function AdminNavigation({
               ) : null}
             </div>
           </details>
+
+          {pendingInviteCount ? (
+            <Link
+              className="mt-3 flex min-h-10 items-center justify-between gap-3 rounded-lg border border-border bg-surface px-3 text-sm text-secondary no-underline hover:bg-interactive hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              href="/organizations"
+            >
+              <span>
+                Pending invitation{pendingInviteCount === 1 ? "" : "s"}
+              </span>
+              <Badge>{pendingInviteCount}</Badge>
+            </Link>
+          ) : null}
 
           <nav
             aria-label="Workspace navigation"

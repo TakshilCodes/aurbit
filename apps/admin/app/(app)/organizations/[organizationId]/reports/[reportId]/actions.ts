@@ -7,6 +7,8 @@ import {
 } from "../../../../../../lib/authorization";
 import {
   createInternalNote,
+  deleteInternalNote,
+  InternalNoteDeletionError,
   InvalidReportAssigneeError,
   updateReportTriage,
 } from "../../../../../../lib/report-triage";
@@ -18,6 +20,10 @@ function actionError(error: unknown) {
 
   if (error instanceof AuthorizationError) {
     return "This report is not available.";
+  }
+
+  if (error instanceof InternalNoteDeletionError) {
+    return error.message;
   }
 
   if (error instanceof InvalidReportAssigneeError) {
@@ -78,6 +84,27 @@ export async function createInternalNoteAction(
       note: { ...note, createdAt: note.createdAt.toISOString() },
       success: true,
     } as const;
+  } catch (error) {
+    return { error: actionError(error), success: false } as const;
+  }
+}
+
+export async function deleteInternalNoteAction(
+  organizationId: string,
+  reportId: string,
+  noteId: unknown,
+) {
+  try {
+    const note = await deleteInternalNote(organizationId, reportId, noteId);
+
+    if (!note) {
+      return {
+        error: "This internal note is not available.",
+        success: false,
+      } as const;
+    }
+
+    return { note, success: true } as const;
   } catch (error) {
     return { error: actionError(error), success: false } as const;
   }

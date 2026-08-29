@@ -23,6 +23,11 @@ const ACTION_LABELS: Record<string, string> = {
   "report.priority_changed": "Changed report priority",
   "report.assignee_changed": "Changed report assignee",
   "report.internal_note_created": "Added an internal note",
+  "report.internal_note_deleted": "Deleted an internal note",
+  workspace_invite_created: "Created a workspace invitation",
+  workspace_invite_resent: "Resent a workspace invitation",
+  workspace_invite_revoked: "Revoked a workspace invitation",
+  workspace_invite_accepted: "Accepted a workspace invitation",
 };
 
 function formatDate(value: Date) {

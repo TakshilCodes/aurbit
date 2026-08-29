@@ -15,6 +15,6 @@ export default auth((request) => {
 
 export const config = {
   matcher: [
-    "/((?!api/auth|login|signup|verify-email|forgot-password|reset-password|check-email|auth-error|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api/auth|login|signup|invite|verify-email|forgot-password|reset-password|check-email|auth-error|_next/static|_next/image|icons/|favicon.ico).*)",
   ],
 };

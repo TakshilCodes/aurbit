@@ -57,8 +57,8 @@ function safePageUrl(value: string | null) {
 
 export default async function ReportDetailPage({ params }: PageProps) {
   const { organizationId, reportId } = await params;
-  const { members, organization, report } = await requirePageData(() =>
-    getOrganizationReport(organizationId, reportId),
+  const { membership, members, organization, report } = await requirePageData(
+    () => getOrganizationReport(organizationId, reportId),
   );
 
   if (!report) notFound();
@@ -161,6 +161,8 @@ export default async function ReportDetailPage({ params }: PageProps) {
           </Card>
 
           <InternalNotes
+            canManageAllNotes={membership.role !== "MEMBER"}
+            currentUserId={membership.userId}
             initialNotes={report.internalNotes.map((note) => ({
               ...note,
               createdAt: note.createdAt.toISOString(),

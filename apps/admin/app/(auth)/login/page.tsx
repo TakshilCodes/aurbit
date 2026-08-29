@@ -21,11 +21,13 @@ export default async function LoginPage({
     verified?: string;
   }>;
 }) {
-  const session = await auth();
-
-  if (session?.user) redirect("/");
-
   const params = await searchParams;
+  const redirectTo = safeRedirectPath(params.callbackUrl ?? null);
+  const session = await auth();
+  if (session?.user) redirect(redirectTo);
+  const signupQuery = new URLSearchParams({
+    callbackUrl: redirectTo,
+  }).toString();
 
   return (
     <>
@@ -49,14 +51,15 @@ export default async function LoginPage({
       <LoginForm
         emailEnabled={authCapabilities.email}
         googleEnabled={authCapabilities.google}
-        redirectTo={safeRedirectPath(params.callbackUrl ?? null)}
+        redirectTo={redirectTo}
       />
       <AuthFooter>
         <p>
           <Link href="/forgot-password">Forgot your password?</Link>
         </p>
         <p>
-          New to Aurbit? <Link href="/signup">Create an account</Link>
+          New to Aurbit?{" "}
+          <Link href={`/signup?${signupQuery}`}>Create an account</Link>
         </p>
       </AuthFooter>
     </>

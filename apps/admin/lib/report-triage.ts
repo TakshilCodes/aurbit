@@ -57,6 +57,13 @@ export const internalNoteInputSchema = z
 
 export type ReportTriageInput = z.infer<typeof reportTriageInputSchema>;
 
+export class InternalNoteDeletionError extends Error {
+  constructor() {
+    super("You can delete only your own internal notes.");
+    this.name = "InternalNoteDeletionError";
+  }
+}
+
 export class InvalidReportAssigneeError extends Error {
   constructor() {
     super("The selected assignee is not available in this workspace.");
@@ -180,5 +187,52 @@ export async function createInternalNote(
       metadata: { reportId: report.id },
     });
     return note;
+  });
+}
+
+export async function deleteInternalNote(
+  organizationId: string,
+  reportId: string,
+  noteId: unknown,
+) {
+  const parsedNoteId = resourceIdSchema.parse(noteId);
+  const { membership, user } =
+    await requireOrganizationMembership(organizationId);
+
+  return db.$transaction(async (transaction) => {
+    const note = await transaction.internalNote.findFirst({
+      where: {
+        id: parsedNoteId,
+        organizationId,
+        bugReportId: reportId,
+      },
+      select: { id: true, authorId: true },
+    });
+
+    if (!note) return null;
+
+    if (membership.role === "MEMBER" && note.authorId !== user.id) {
+      throw new InternalNoteDeletionError();
+    }
+
+    const deleted = await transaction.internalNote.deleteMany({
+      where: {
+        id: note.id,
+        organizationId,
+        bugReportId: reportId,
+      },
+    });
+    if (deleted.count !== 1) return null;
+
+    await writeAuditLog(transaction, {
+      action: AUDIT_ACTIONS.INTERNAL_NOTE_DELETED,
+      actorUserId: user.id,
+      organizationId,
+      targetId: note.id,
+      targetType: "internal_note",
+      metadata: { reportId },
+    });
+
+    return { id: note.id };
   });
 }

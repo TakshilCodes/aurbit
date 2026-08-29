@@ -25,11 +25,7 @@ vi.mock("./authorization", () => ({
   requireOrganizationMembership: mocks.requireMembership,
 }));
 
-import {
-  addWorkspaceMember,
-  removeWorkspaceMember,
-  updateWorkspaceMemberRole,
-} from "./team";
+import { removeWorkspaceMember, updateWorkspaceMemberRole } from "./team";
 
 const organizationId = "organization_1";
 
@@ -77,19 +73,25 @@ beforeEach(() => {
 
 describe("workspace team management", () => {
   it("does not allow a MEMBER to manage the team", async () => {
-    mocks.findMember.mockResolvedValue({
-      id: "actor_member",
-      role: "MEMBER",
-      userId: "actor_user",
-    });
+    mocks.findMember
+      .mockResolvedValueOnce({
+        id: "actor_member",
+        role: "MEMBER",
+        userId: "actor_user",
+      })
+      .mockResolvedValueOnce({
+        id: "target_member",
+        role: "MEMBER",
+        userId: "target_user",
+      });
 
     await expect(
-      addWorkspaceMember(organizationId, {
-        email: "new@example.com",
-        role: "MEMBER",
+      updateWorkspaceMemberRole(organizationId, {
+        memberId: "target_member",
+        role: "ADMIN",
       }),
     ).rejects.toMatchObject({ code: "INSUFFICIENT_ROLE" });
-    expect(mocks.createMember).not.toHaveBeenCalled();
+    expect(mocks.updateMember).not.toHaveBeenCalled();
     expect(mocks.createAudit).not.toHaveBeenCalled();
   });
 
@@ -248,35 +250,6 @@ describe("workspace team management", () => {
       metadata: { fromRole: "MEMBER", toRole: "ADMIN" },
       organizationId,
       targetId: "target_member",
-    });
-  });
-
-  it("adds an existing verified user and records an audit entry", async () => {
-    mocks.findMember.mockResolvedValue({
-      id: "actor_member",
-      role: "OWNER",
-      userId: "actor_user",
-    });
-
-    await addWorkspaceMember(organizationId, {
-      email: "New@Example.com",
-      role: "MEMBER",
-    });
-
-    expect(mocks.findUser).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { email: "new@example.com" } }),
-    );
-    expect(mocks.createMember).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { organizationId, role: "MEMBER", userId: "new_user" },
-      }),
-    );
-    const auditInput = mocks.createAudit.mock.calls.at(-1)?.[0] as {
-      data: Record<string, unknown>;
-    };
-    expect(auditInput.data).toMatchObject({
-      action: "workspace.member_added",
-      organizationId,
     });
   });
 
