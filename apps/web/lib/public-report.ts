@@ -1,5 +1,6 @@
 import { BugReportPriority, BugReportStatus, db } from "@aurbit/db";
 import { z } from "zod";
+import { enqueueEvent } from "./async-events";
 import { resolvePublicProjectTarget } from "./public-project";
 import {
   createPublicReportAttachmentObjectKey,
@@ -38,6 +39,7 @@ type PublicReportRequestContext = Pick<
 type PublicReportDependencies = {
   attachmentStore?: PublicReportAttachmentStore;
   createId?: () => string;
+  enqueue?: typeof enqueueEvent;
   protect?: typeof protectPublicReportRequest;
 };
 
@@ -207,6 +209,7 @@ export async function createPublicBugReport(
 
   const uploadedKeys: string[] = [];
   let attachmentStore: PublicReportAttachmentStore | undefined;
+  let reportId: string;
 
   try {
     const attachmentMetadata: Array<{
@@ -243,7 +246,7 @@ export async function createPublicBugReport(
       }
     }
 
-    await db.bugReport.create({
+    const report = await db.bugReport.create({
       data: {
         attachments:
           attachmentMetadata.length > 0
@@ -263,6 +266,7 @@ export async function createPublicBugReport(
       },
       select: { id: true },
     });
+    reportId = report.id;
   } catch {
     if (attachmentStore && uploadedKeys.length > 0) {
       try {
@@ -276,6 +280,23 @@ export async function createPublicBugReport(
       message: "Couldn't send your report. Try again.",
       status: "error",
     };
+  }
+
+  try {
+    await (dependencies.enqueue ?? enqueueEvent)({
+      reportId,
+      type: "report.created",
+    });
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        eventType: "report.created",
+        level: "error",
+        message: "async_event_enqueue_failed",
+        reportId,
+      }),
+    );
   }
 
   return {

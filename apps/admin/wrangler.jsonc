@@ -9,4 +9,34 @@
     "binding": "ASSETS",
   },
   "r2_buckets": [{ "binding": "BUG_REPORT_ATTACHMENTS" }],
+  "services": [
+    {
+      "binding": "AURBIT_EVENTS_LOCAL",
+      "service": "aurbit-worker",
+      "entrypoint": "LocalQueueProducer",
+    },
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "AURBIT_EVENTS", "queue": "aurbit-events-local" },
+    ],
+  },
+  "env": {
+    "staging": {
+      "r2_buckets": [{ "binding": "BUG_REPORT_ATTACHMENTS" }],
+      "queues": {
+        "producers": [
+          { "binding": "AURBIT_EVENTS", "queue": "aurbit-events-staging" },
+        ],
+      },
+    },
+    "production": {
+      "r2_buckets": [{ "binding": "BUG_REPORT_ATTACHMENTS" }],
+      "queues": {
+        "producers": [
+          { "binding": "AURBIT_EVENTS", "queue": "aurbit-events-production" },
+        ],
+      },
+    },
+  },
 }

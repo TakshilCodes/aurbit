@@ -2,6 +2,8 @@ import { db } from "@aurbit/db";
 import { z } from "zod";
 import { requireOrganizationMembership } from "./authorization";
 import { AUDIT_ACTIONS, writeAuditLog } from "./audit-log";
+import { enqueueEvent } from "./async-events";
+import { structuredLog } from "@aurbit/async-events/logger";
 
 export const REPORT_TRIAGE_STATUSES = [
   "OPEN",
@@ -93,7 +95,8 @@ export async function updateReportTriage(
   const parsed = reportTriageInputSchema.parse(input);
   const { user } = await requireOrganizationMembership(organizationId);
 
-  return db.$transaction(async (transaction) => {
+  let eventType: "report.updated" | "report.resolved" | undefined;
+  const result = await db.$transaction(async (transaction) => {
     const current = await transaction.bugReport.findFirst({
       where: { id: reportId, organizationId },
       select: reportTriageSelect,
@@ -144,8 +147,26 @@ export async function updateReportTriage(
       targetType: "bug_report",
       metadata: { from: previousValue, to: parsed.value },
     });
+    if (parsed.field !== "assignee") {
+      eventType =
+        parsed.field === "status" && parsed.value === "RESOLVED"
+          ? "report.resolved"
+          : "report.updated";
+    }
     return report;
   });
+  if (result && eventType) {
+    try {
+      await enqueueEvent({ type: eventType, reportId: result.id });
+    } catch {
+      // The committed mutation remains successful; no outbox exists yet.
+      structuredLog("error", "async_event_enqueue_failed", {
+        eventType,
+        reportId: result.id,
+      });
+    }
+  }
+  return result;
 }
 
 export async function createInternalNote(

@@ -1,0 +1,15 @@
+# Copy to .dev.vars for local Wrangler Queue + Worker testing.
+DATABASE_URL="postgresql://aurbit:aurbit@localhost:5433/aurbit?schema=public"
+AUTH_URL="http://localhost:3001"
+
+# Optional until a report.created event is processed. Use Resend test/dev
+# credentials only; unrelated Worker development does not send email.
+AUTH_RESEND_KEY=
+AUTH_EMAIL_FROM=
+
+# Same 32-byte base64 encryption key as apps/admin/.env.local.
+# Generate: node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+WEBHOOK_ENCRYPTION_KEY=
+# Opt-in only for http://localhost:8789 (or loopback IP) local receiver testing.
+# Never set this in staging/production. Those environments ignore it.
+WEBHOOK_LOCAL_TESTING=false

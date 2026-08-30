@@ -10,14 +10,14 @@ Aurbit uses three isolated environment tiers. Resources and secrets must not be 
 
 ## Current variables
 
-`packages/db/.env.example` documents `DATABASE_URL` for Prisma commands. `apps/admin/.env.example` documents the authenticated dashboard, and `apps/web/.env.example` documents the public application:
+`packages/db/.env.example` documents `DATABASE_URL` for Prisma commands. `apps/admin/.env.example` documents the authenticated dashboard, `apps/web/.env.example` documents the public application, and `apps/worker/.dev.vars.example` documents local background-Worker bindings:
 
 - `DATABASE_URL` connects the admin application to PostgreSQL.
 - `AUTH_SECRET` signs and encrypts Auth.js session data and must be unique per environment.
 - `AUTH_URL` is the canonical admin application URL used in authentication links.
 - `PUBLIC_APP_URL` is the canonical public application URL used to validate Turnstile hostnames for bug reports.
 - `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` enable Google sign-in when both are configured.
-- `AUTH_RESEND_KEY` and `AUTH_EMAIL_FROM` enable magic links, email verification, and password-reset email when both are configured.
+- `AUTH_RESEND_KEY` and `AUTH_EMAIL_FROM` enable magic links, email verification, password-reset email, workspace invitations, and background report-notification email. The Worker uses the same names; configure them separately on each deployed Worker that consumes them.
 - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` renders Cloudflare Turnstile; `TURNSTILE_SECRET_KEY` validates auth and public-report tokens server-side in their respective applications.
 - `REDIS_URL` connects local rate limiting to the existing Docker Redis service.
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` connect staging and production rate limiting to Redis over HTTP.
@@ -30,6 +30,7 @@ The applications remain independently buildable and deployable:
 
 - `apps/web` targets `aurbit.takshil.in`.
 - `apps/admin` targets `admin.aurbit.takshil.in`.
+- `apps/worker` is the independently deployed Queue consumer and has no public application route.
 
 Stage 3 provides local Cloudflare-compatible builds and previews only. Custom domains, remote secrets, and production deployment automation are intentionally deferred until the real deployment stage.
 
@@ -61,4 +62,4 @@ Run `pnpm build:cloudflare` to produce Cloudflare Worker bundles for both applic
 
 Run `pnpm preview:cloudflare:web` or `pnpm preview:cloudflare:admin` to build and serve one application in the local Workers runtime. These preview commands are intentionally separate because each application is deployed independently.
 
-OpenNext is not fully compatible with native Windows because its bundle step creates symbolic links. On Windows, run Cloudflare builds and previews from WSL or another Linux environment. Standard `pnpm dev` development remains unchanged.
+OpenNext is not fully compatible with native Windows because its bundle step creates symbolic links. On Windows, run full Cloudflare builds and previews from WSL or another Linux environment. `pnpm dev` / `pnpm dev:queue` run Next dev plus the local Queue consumer without that build step; see [the local Queue workflow](./async-events.md#local-end-to-end-test). The development-only service binding forwards events into the consumer's local Queue simulator. Production continues to use direct Cloudflare Queue bindings.

@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aurbit-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": { "AURBIT_ENV": "local" },
+  "queues": {
+    "producers": [
+      { "binding": "LOCAL_AURBIT_EVENTS", "queue": "aurbit-events-local" },
+    ],
+    "consumers": [
+      {
+        "queue": "aurbit-events-local",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "aurbit-events-local-dlq",
+      },
+    ],
+  },
+  "env": {
+    "staging": {
+      "vars": { "AURBIT_ENV": "staging" },
+      "queues": {
+        "consumers": [
+          {
+            "queue": "aurbit-events-staging",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "aurbit-events-staging-dlq",
+          },
+        ],
+      },
+    },
+    "production": {
+      "vars": { "AURBIT_ENV": "production" },
+      "queues": {
+        "consumers": [
+          {
+            "queue": "aurbit-events-production",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 3,
+            "dead_letter_queue": "aurbit-events-production-dlq",
+          },
+        ],
+      },
+    },
+  },
+}

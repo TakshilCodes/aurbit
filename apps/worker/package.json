@@ -1,0 +1,33 @@
+{
+  "name": "@aurbit/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "cf:build": "wrangler deploy --dry-run --outdir dist",
+    "dev": "wrangler dev --persist-to ../../.wrangler/state/worker",
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "test:queue": "node scripts/queue-smoke.mjs",
+    "test:webhook:local": "node --experimental-strip-types scripts/queue-smoke.mjs --webhooks",
+    "dev:webhook-receiver": "node scripts/webhook-receiver.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aurbit/webhooks": "workspace:*",
+    "@aurbit/async-events": "workspace:*",
+    "@aurbit/db": "workspace:*",
+    "resend": "^6.22.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@aurbit/eslint-config": "workspace:*",
+    "@aurbit/typescript-config": "workspace:*",
+    "@cloudflare/workers-types": "^5.20260820.1",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.125.0"
+  }
+}

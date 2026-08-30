@@ -5,6 +5,14 @@ generator client {
   importFileExtension = "ts"
 }
 
+generator cloudflareClient {
+  provider            = "prisma-client"
+  runtime             = "cloudflare"
+  output              = "../src/generated/prisma-cloudflare"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -32,6 +40,13 @@ enum BugReportPriority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+enum EmailDeliveryStatus {
+  PENDING
+  RETRYABLE_FAILURE
+  PERMANENT_FAILURE
+  SENT
 }
 
 model User {
@@ -100,18 +115,66 @@ model AuthToken {
 }
 
 model Organization {
-  id          String               @id @default(cuid())
-  name        String
-  slug        String               @unique
-  activeUsers User[]               @relation("ActiveOrganization")
-  memberships OrganizationMember[]
-  projects    Project[]
-  auditLogs   AuditLog[]
-  invites     OrganizationInvite[]
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
+  webhookEndpoints WebhookEndpoint[]
+  id               String               @id @default(cuid())
+  name             String
+  slug             String               @unique
+  activeUsers      User[]               @relation("ActiveOrganization")
+  memberships      OrganizationMember[]
+  projects         Project[]
+  auditLogs        AuditLog[]
+  invites          OrganizationInvite[]
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
   @@map("organizations")
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERING
+  RETRYABLE_FAILURE
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
+model WebhookEndpoint {
+  id              String            @id @default(cuid())
+  organizationId  String            @map("organization_id")
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  url             String            @db.VarChar(2048)
+  secretEncrypted String            @map("secret_encrypted") @db.Text
+  events          String[]
+  enabled         Boolean           @default(true)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deliveries      WebhookDelivery[]
+
+  @@index([organizationId, enabled])
+  @@map("webhook_endpoints")
+}
+
+model WebhookDelivery {
+  id                String                @id @default(cuid())
+  webhookEndpointId String                @map("webhook_endpoint_id")
+  endpoint          WebhookEndpoint       @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+  eventId           String                @map("event_id") @db.VarChar(36)
+  eventType         String                @map("event_type") @db.VarChar(64)
+  payload           String                @db.Text
+  status            WebhookDeliveryStatus @default(PENDING)
+  attemptCount      Int                   @default(0) @map("attempt_count")
+  responseStatus    Int?                  @map("response_status")
+  lastError         String?               @map("last_error") @db.VarChar(64)
+  deliveredAt       DateTime?             @map("delivered_at")
+  lockedUntil       DateTime?             @map("locked_until")
+  lockToken         String?               @map("lock_token") @db.VarChar(36)
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  @@unique([webhookEndpointId, eventId])
+  @@index([webhookEndpointId, createdAt])
+  @@map("webhook_deliveries")
 }
 
 model OrganizationMember {
@@ -238,4 +301,21 @@ model Attachment {
 
   @@index([bugReportId])
   @@map("attachments")
+}
+
+model EmailDelivery {
+  id                String              @id @default(cuid())
+  eventId           String              @map("event_id") @db.VarChar(36)
+  recipient         String              @db.VarChar(254)
+  notificationType  String              @map("notification_type") @db.VarChar(100)
+  providerMessageId String?             @map("provider_message_id") @db.VarChar(100)
+  status            EmailDeliveryStatus @default(PENDING)
+  lastErrorCode     String?             @map("last_error_code") @db.VarChar(64)
+  sentAt            DateTime?           @map("sent_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  @@unique([eventId, notificationType, recipient])
+  @@index([status, updatedAt])
+  @@map("email_deliveries")
 }
