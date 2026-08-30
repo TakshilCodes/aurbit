@@ -1,0 +1,27 @@
+{
+  "name": "@aurbit/webhooks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./crypto": "./src/crypto.ts",
+    "./url": "./src/url.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.4.3",
+    "ipaddr.js": "^2.2.0"
+  },
+  "devDependencies": {
+    "@aurbit/eslint-config": "workspace:*",
+    "@aurbit/typescript-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.11"
+  }
+}

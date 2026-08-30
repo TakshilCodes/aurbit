@@ -6,6 +6,12 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "imports": {
+    "#prisma-client": {
+      "workerd": "./src/generated/prisma-cloudflare/client.ts",
+      "default": "./src/generated/prisma/client.ts"
+    }
+  },
   "scripts": {
     "db:generate": "prisma generate",
     "db:migrate:deploy": "prisma migrate deploy",

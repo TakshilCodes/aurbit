@@ -12,7 +12,11 @@
     "format:check": "prettier --check .",
     "preview:cloudflare:admin": "pnpm --filter admin cf:preview",
     "preview:cloudflare:web": "pnpm --filter web cf:preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:queue": "turbo run dev",
+    "test:queue": "pnpm --filter @aurbit/worker test:queue",
+    "preview:cloudflare:queue": "pnpm --filter web cf:build && pnpm --filter web exec wrangler dev -c wrangler.jsonc -c ../worker/wrangler.jsonc --persist-to ../../.wrangler/state/queues",
+    "preview:cloudflare:worker": "pnpm --filter @aurbit/worker dev"
   },
   "devDependencies": {
     "husky": "^9.1.7",

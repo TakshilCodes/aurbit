@@ -1,7 +1,11 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [
+    "WEBHOOK_ENCRYPTION_KEY",
+    "WEBHOOK_LOCAL_TESTING",
+    "WEBHOOK_TEST_SECRET",
     "AUTH_EMAIL_FROM",
     "AUTH_GOOGLE_ID",
     "AUTH_GOOGLE_SECRET",
@@ -20,7 +24,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
     },
     "cf:build": {
       "dependsOn": ["^build"],

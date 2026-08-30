@@ -1,6 +1,11 @@
 import type { Prisma } from "@aurbit/db";
 
 export const AUDIT_ACTIONS = {
+  WEBHOOK_CREATED: "webhook.endpoint_created",
+  WEBHOOK_UPDATED: "webhook.endpoint_updated",
+  WEBHOOK_TOGGLED: "webhook.endpoint_toggled",
+  WEBHOOK_SECRET_ROTATED: "webhook.secret_rotated",
+  WEBHOOK_DELETED: "webhook.endpoint_deleted",
   INTERNAL_NOTE_CREATED: "report.internal_note_created",
   INTERNAL_NOTE_DELETED: "report.internal_note_deleted",
   MEMBER_ADDED: "workspace.member_added",
@@ -27,6 +32,7 @@ export function writeAuditLog(
     targetId?: string | null;
     targetType:
       | "bug_report"
+      | "webhook_endpoint"
       | "internal_note"
       | "organization_member"
       | "workspace_invite";

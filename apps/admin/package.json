@@ -14,6 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aurbit/webhooks": "workspace:*",
+    "@aurbit/async-events": "workspace:*",
     "@aurbit/db": "workspace:*",
     "@aurbit/rate-limit": "workspace:^",
     "@aurbit/ui": "workspace:*",

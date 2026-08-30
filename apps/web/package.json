@@ -22,7 +22,8 @@
     "react-dom": "^19.2.0",
     "zod": "^4.4.3",
     "@aurbit/rate-limit": "workspace:*",
-    "@aurbit/turnstile": "workspace:*"
+    "@aurbit/turnstile": "workspace:*",
+    "@aurbit/async-events": "workspace:*"
   },
   "devDependencies": {
     "@aurbit/eslint-config": "workspace:*",

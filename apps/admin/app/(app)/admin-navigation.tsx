@@ -39,6 +39,7 @@ function sectionFromPath(pathname: string) {
   if (pathname.includes("/projects")) return "Projects";
   if (pathname.includes("/team")) return "Team";
   if (pathname.includes("/audit")) return "Audit log";
+  if (pathname.includes("/webhooks")) return "Webhooks";
   return "Dashboard";
 }
 
@@ -88,6 +89,15 @@ export function AdminNavigation({
           href: `${workspaceBase}/audit`,
           label: "Audit log",
         },
+        ...(activeWorkspace?.role !== "MEMBER"
+          ? [
+              {
+                active: pathname.startsWith(`${workspaceBase}/webhooks`),
+                href: `${workspaceBase}/webhooks`,
+                label: "Webhooks",
+              },
+            ]
+          : []),
       ]
     : [];
   const userName = user.name?.trim() || user.email;

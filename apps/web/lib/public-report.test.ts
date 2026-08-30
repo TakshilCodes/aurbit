@@ -4,8 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createReport: vi.fn(),
+  enqueueEvent: vi.fn(),
   protect: vi.fn(),
   resolveProject: vi.fn(),
+}));
+
+vi.mock("./async-events", () => ({
+  enqueueEvent: mocks.enqueueEvent,
 }));
 
 vi.mock("@aurbit/db", () => ({
@@ -96,6 +101,9 @@ beforeEach(() => {
     projectId: "project_1",
   });
   mocks.createReport.mockResolvedValue({ id: "report_1" });
+  mocks.enqueueEvent.mockResolvedValue({
+    eventId: "77d8bc7b-f20c-42c3-905a-a6f3211502d7",
+  });
 });
 
 describe("public bug report submission", () => {
@@ -157,6 +165,33 @@ describe("public bug report submission", () => {
       expect(mocks.createReport).not.toHaveBeenCalled();
     },
   );
+
+  it("enqueues report.created only after the report is stored", async () => {
+    await expect(submit()).resolves.toMatchObject({ status: "success" });
+
+    expect(mocks.enqueueEvent).toHaveBeenCalledWith({
+      reportId: "report_1",
+      type: "report.created",
+    });
+    expect(mocks.createReport.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enqueueEvent.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it("keeps a committed report successful and logs an enqueue failure", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    mocks.enqueueEvent.mockRejectedValue(new Error("queue unavailable"));
+
+    await expect(submit()).resolves.toEqual({
+      message: "Your report was sent to the team.",
+      status: "success",
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      expect.stringContaining('"message":"async_event_enqueue_failed"'),
+    );
+  });
 
   it("fails safely for a malformed project key before protection", async () => {
     const input = validInput();

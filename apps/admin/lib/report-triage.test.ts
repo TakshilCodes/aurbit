@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  enqueue: vi.fn(),
   createAudit: vi.fn(),
   createNote: vi.fn(),
   deleteNotes: vi.fn(),
@@ -11,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
   updateReport: vi.fn(),
 }));
+
+vi.mock("./async-events", () => ({ enqueueEvent: mocks.enqueue }));
 
 vi.mock("@aurbit/db", () => ({
   db: {
@@ -36,8 +39,67 @@ import {
 const organizationId = "organization_1";
 const reportId = "report_1";
 
+it("emits resolved only after a committed status transition", async () => {
+  await updateReportTriage(organizationId, reportId, {
+    field: "status",
+    value: "RESOLVED",
+  });
+  expect(mocks.enqueue).toHaveBeenCalledWith({
+    type: "report.resolved",
+    reportId,
+  });
+  expect(mocks.createAudit.mock.invocationCallOrder[0]).toBeLessThan(
+    mocks.enqueue.mock.invocationCallOrder[0]!,
+  );
+});
+
+it("emits updated for priority changes, but no event for no-op or assignee", async () => {
+  await updateReportTriage(organizationId, reportId, {
+    field: "priority",
+    value: "HIGH",
+  });
+  expect(mocks.enqueue).toHaveBeenCalledWith({
+    type: "report.updated",
+    reportId,
+  });
+  mocks.enqueue.mockClear();
+  await updateReportTriage(organizationId, reportId, {
+    field: "status",
+    value: "OPEN",
+  });
+  await updateReportTriage(organizationId, reportId, {
+    field: "assignee",
+    value: "member_2",
+  });
+  expect(mocks.enqueue).not.toHaveBeenCalled();
+});
+
+it("never enqueues a failed transaction; enqueue failure preserves the committed action", async () => {
+  mocks.createAudit.mockRejectedValueOnce(new Error("DB unavailable"));
+  await expect(
+    updateReportTriage(organizationId, reportId, {
+      field: "priority",
+      value: "HIGH",
+    }),
+  ).rejects.toThrow();
+  expect(mocks.enqueue).not.toHaveBeenCalled();
+  const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  mocks.enqueue.mockRejectedValueOnce(new Error("Queue unavailable"));
+  await expect(
+    updateReportTriage(organizationId, reportId, {
+      field: "priority",
+      value: "HIGH",
+    }),
+  ).resolves.toMatchObject({ id: reportId });
+  expect(log).toHaveBeenCalledWith(
+    expect.stringContaining("async_event_enqueue_failed"),
+  );
+  log.mockRestore();
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.enqueue.mockResolvedValue(undefined);
   mocks.requireMembership.mockResolvedValue({
     membership: { role: "MEMBER" },
     user: { id: "user_1" },
