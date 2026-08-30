@@ -5,6 +5,7 @@
   "compatibility_date": "2026-08-25",
   "compatibility_flags": ["nodejs_compat"],
   "vars": { "AURBIT_ENV": "local" },
+  "triggers": { "crons": ["0 3 * * *"] },
   "queues": {
     "producers": [
       { "binding": "LOCAL_AURBIT_EVENTS", "queue": "aurbit-events-local" },
@@ -22,6 +23,7 @@
   "env": {
     "staging": {
       "vars": { "AURBIT_ENV": "staging" },
+      "triggers": { "crons": ["0 3 * * *"] },
       "queues": {
         "consumers": [
           {
@@ -36,6 +38,7 @@
     },
     "production": {
       "vars": { "AURBIT_ENV": "production" },
+      "triggers": { "crons": ["0 3 * * *"] },
       "queues": {
         "consumers": [
           {

@@ -11,7 +11,7 @@ const databaseUrlSchema = z
     "DATABASE_URL must be a PostgreSQL connection URL",
   );
 
-function createPrismaClient() {
+export function createPrismaClient() {
   const connectionString = databaseUrlSchema.parse(process.env.DATABASE_URL);
   const adapter = new PrismaPg({ connectionString });
 

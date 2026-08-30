@@ -211,6 +211,7 @@ model OrganizationInvite {
 
   @@index([organizationId, createdAt])
   @@index([organizationId, email])
+  @@index([expiresAt])
   @@map("organization_invites")
 }
 
