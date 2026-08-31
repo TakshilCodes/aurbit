@@ -13,6 +13,8 @@ vi.mock("@opennextjs/cloudflare", () => ({
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  vi.spyOn(console, "info").mockImplementation(() => undefined);
   vi.stubEnv("NODE_ENV", "production");
   mocks.context.mockReturnValue({
     env: {
@@ -31,6 +33,12 @@ describe("event producer runtime selection", () => {
       reportId: "report_1",
     });
     expect(mocks.directSend).toHaveBeenCalledWith(event);
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining(event.eventId),
+    );
+    expect(console.info).toHaveBeenCalledWith(
+      expect.stringContaining('"requestId":'),
+    );
     expect(mocks.localSend).not.toHaveBeenCalled();
     expect(Object.keys(event).sort()).toEqual([
       "eventId",
@@ -52,24 +60,24 @@ describe("event producer runtime selection", () => {
     expect(mocks.directSend).not.toHaveBeenCalled();
   });
 
-  it("does not silently use an unconnected simulator when the local bridge is absent", () => {
+  it("does not silently use an unconnected simulator when the local bridge is absent", async () => {
     vi.stubEnv("NODE_ENV", "development");
     mocks.context.mockReturnValue({
       env: { AURBIT_EVENTS: { send: mocks.directSend } },
     });
-    expect(() =>
+    await expect(
       enqueueEvent({ type: "report.created", reportId: "report_1" }),
-    ).toThrow("Local async events are not configured");
+    ).rejects.toThrow("Local async events are not configured");
     expect(mocks.directSend).not.toHaveBeenCalled();
   });
 
-  it("does not fall back to the local bridge when the production Queue is missing", () => {
+  it("does not fall back to the local bridge when the production Queue is missing", async () => {
     mocks.context.mockReturnValue({
       env: { AURBIT_EVENTS_LOCAL: { send: mocks.localSend } },
     });
-    expect(() =>
+    await expect(
       enqueueEvent({ type: "report.created", reportId: "report_1" }),
-    ).toThrow("Async events are not configured");
+    ).rejects.toThrow("Async events are not configured");
     expect(mocks.localSend).not.toHaveBeenCalled();
   });
 
@@ -79,6 +87,13 @@ describe("event producer runtime selection", () => {
     await expect(
       enqueueEvent({ type: "report.created", reportId: "report_1" }),
     ).rejects.toThrow("Worker is unavailable");
+    expect(console.error).toHaveBeenCalledOnce();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"message":"async_event_enqueue_failed"'),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"eventId":'),
+    );
     expect(mocks.directSend).not.toHaveBeenCalled();
   });
 });

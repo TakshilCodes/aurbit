@@ -116,6 +116,15 @@ describe("Aurbit queue consumer", () => {
 
     expect(queueMessage.retry).toHaveBeenCalledOnce();
     expect(queueMessage.ack).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining(event.eventId),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining('"service":"aurbit-worker"'),
+    );
+    expect(console.error).not.toHaveBeenCalledWith(
+      expect.stringContaining("temporary dependency failure"),
+    );
   });
 
   it("acknowledges an intentionally permanent processing failure", async () => {

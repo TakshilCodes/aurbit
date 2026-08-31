@@ -1,5 +1,11 @@
 # Copy to .dev.vars for local Wrangler Queue + Worker testing.
 DATABASE_URL="postgresql://aurbit:aurbit@localhost:5433/aurbit?schema=public"
+
+# Optional exception monitoring. No DSN/account is required for local development.
+SENTRY_DSN=
+# Optional HTTPS log export; use a non-production Better Stack HTTP source locally.
+BETTER_STACK_INGESTING_HOST=
+BETTER_STACK_SOURCE_TOKEN=
 AUTH_URL="http://localhost:3001"
 
 # Optional until a report.created event is processed. Use Resend test/dev

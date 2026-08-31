@@ -178,7 +178,7 @@ describe("public bug report submission", () => {
     );
   });
 
-  it("keeps a committed report successful and logs an enqueue failure", async () => {
+  it("keeps a committed report successful without duplicating producer failure logs", async () => {
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
@@ -188,9 +188,7 @@ describe("public bug report submission", () => {
       message: "Your report was sent to the team.",
       status: "success",
     });
-    expect(consoleError).toHaveBeenCalledWith(
-      expect.stringContaining('"message":"async_event_enqueue_failed"'),
-    );
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("fails safely for a malformed project key before protection", async () => {

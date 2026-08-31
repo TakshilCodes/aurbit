@@ -1,6 +1,14 @@
 import { beforeEach, expect, it, vi } from "vitest";
 import worker from "./index";
 import { runScheduledMaintenance } from "./scheduled-maintenance";
+import { consumeAurbitEventBatch } from "./consumer";
+import { createDefaultEventHandlers } from "./handlers";
+
+vi.mock("@sentry/cloudflare", () => ({
+  withSentry: (_options: unknown, handler: unknown) => handler,
+  captureException: vi.fn(),
+  setTag: vi.fn(),
+}));
 
 vi.mock("./scheduled-maintenance", () => ({
   runScheduledMaintenance: vi.fn(),
@@ -14,6 +22,7 @@ const controller = {
   scheduledTime: Date.parse("2026-08-30T03:00:00Z"),
   noRetry: vi.fn(),
 };
+const context = { waitUntil: vi.fn() };
 
 beforeEach(() => vi.resetAllMocks());
 
@@ -26,9 +35,11 @@ it("scheduled handler awaits maintenance using the scheduled time", async () => 
       }),
   );
   let finished = false;
-  const execution = worker.scheduled(controller).then(() => {
-    finished = true;
-  });
+  const execution = worker
+    .scheduled(controller, {}, context as unknown as ExecutionContext)
+    .then(() => {
+      finished = true;
+    });
   await Promise.resolve();
   expect(runScheduledMaintenance).toHaveBeenCalledExactlyOnceWith(
     new Date(controller.scheduledTime),
@@ -42,5 +53,15 @@ it("scheduled handler awaits maintenance using the scheduled time", async () => 
 it("scheduled handler rejects when maintenance fails", async () => {
   const error = new Error("database unavailable");
   vi.mocked(runScheduledMaintenance).mockRejectedValueOnce(error);
-  await expect(worker.scheduled(controller)).rejects.toBe(error);
+  await expect(
+    worker.scheduled(controller, {}, context as unknown as ExecutionContext),
+  ).rejects.toBe(error);
+});
+
+it("queue entrypoint preserves consumer processing and registers background flush", async () => {
+  const batch = { queue: "test", messages: [] } as unknown as MessageBatch;
+  await worker.queue(batch, {}, context as unknown as ExecutionContext);
+  expect(createDefaultEventHandlers).toHaveBeenCalledExactlyOnceWith({});
+  expect(consumeAurbitEventBatch).toHaveBeenCalledOnce();
+  expect(context.waitUntil).toHaveBeenCalledOnce();
 });

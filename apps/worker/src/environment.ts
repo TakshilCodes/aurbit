@@ -1,6 +1,9 @@
 import { z } from "zod";
 
 export type WorkerBindings = {
+  BETTER_STACK_INGESTING_HOST?: string;
+  BETTER_STACK_SOURCE_TOKEN?: string;
+  SENTRY_DSN?: string;
   WEBHOOK_ENCRYPTION_KEY?: string;
   WEBHOOK_LOCAL_TESTING?: string;
   AURBIT_ENV?: string;

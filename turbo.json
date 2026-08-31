@@ -1,8 +1,19 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["NODE_ENV"],
+  "globalEnv": [
+    "NODE_ENV",
+    "NEXT_PUBLIC_APP_ENV",
+    "NEXT_PUBLIC_SENTRY_DSN",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT"
+  ],
   "globalPassThroughEnv": [
+    "BETTER_STACK_INGESTING_HOST",
+    "BETTER_STACK_SOURCE_TOKEN",
+    "AURBIT_ENV",
+    "SENTRY_DSN",
+    "SENTRY_AUTH_TOKEN",
     "WEBHOOK_ENCRYPTION_KEY",
     "WEBHOOK_LOCAL_TESTING",
     "WEBHOOK_TEST_SECRET",

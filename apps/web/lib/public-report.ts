@@ -1,6 +1,8 @@
 import { BugReportPriority, BugReportStatus, db } from "@aurbit/db";
 import { z } from "zod";
 import { enqueueEvent } from "./async-events";
+import { getRequestLogger } from "./logger";
+import { reportUnexpectedError } from "./observability";
 import { resolvePublicProjectTarget } from "./public-project";
 import {
   createPublicReportAttachmentObjectKey,
@@ -185,6 +187,9 @@ export async function createPublicBugReport(
       requestContext.attachments,
     );
   } catch (error) {
+    if (!(error instanceof PublicReportAttachmentValidationError)) {
+      await reportUnexpectedError("attachment_processing_failed", error);
+    }
     return {
       fieldErrors:
         error instanceof PublicReportAttachmentValidationError
@@ -210,6 +215,7 @@ export async function createPublicBugReport(
   const uploadedKeys: string[] = [];
   let attachmentStore: PublicReportAttachmentStore | undefined;
   let reportId: string;
+  let stage = "attachment_storage";
 
   try {
     const attachmentMetadata: Array<{
@@ -246,6 +252,7 @@ export async function createPublicBugReport(
       }
     }
 
+    stage = "report_database";
     const report = await db.bugReport.create({
       data: {
         attachments:
@@ -267,12 +274,20 @@ export async function createPublicBugReport(
       select: { id: true },
     });
     reportId = report.id;
-  } catch {
+  } catch (error) {
+    await reportUnexpectedError("public_report_creation_failed", error, {
+      projectId: project.projectId,
+      stage,
+      attachmentCount: attachments.length,
+    });
     if (attachmentStore && uploadedKeys.length > 0) {
       try {
         await attachmentStore.delete(uploadedKeys);
-      } catch {
-        // The report was not created; cleanup can be retried operationally.
+      } catch (cleanupError) {
+        await reportUnexpectedError("attachment_cleanup_failed", cleanupError, {
+          projectId: project.projectId,
+          cleanupCount: uploadedKeys.length,
+        });
       }
     }
 
@@ -282,21 +297,17 @@ export async function createPublicBugReport(
     };
   }
 
+  (await getRequestLogger()).info("report_created", {
+    reportId,
+    projectId: project.projectId,
+  });
   try {
     await (dependencies.enqueue ?? enqueueEvent)({
       reportId,
       type: "report.created",
     });
-  } catch (error) {
-    console.error(
-      JSON.stringify({
-        errorName: error instanceof Error ? error.name : "UnknownError",
-        eventType: "report.created",
-        level: "error",
-        message: "async_event_enqueue_failed",
-        reportId,
-      }),
-    );
+  } catch {
+    // enqueueEvent records the failure; the committed report remains successful.
   }
 
   return {

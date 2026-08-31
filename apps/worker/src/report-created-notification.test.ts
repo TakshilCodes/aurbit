@@ -122,7 +122,7 @@ function dependencies(
     deliveryStore,
     emailSender,
     loadContext: vi.fn(() => Promise.resolve(notificationContext)),
-    log: vi.fn(),
+    log: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   };
 }
 

@@ -1,5 +1,6 @@
 import { createPrismaClient, db } from "@aurbit/db";
-import { structuredLog } from "./logger";
+import { logger } from "./logger";
+import { setScheduledRunId } from "./observability";
 
 const INVITE_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
 const INVITE_CLEANUP_BATCH_SIZE = 500;
@@ -35,6 +36,8 @@ export async function cleanupOldInvites(
 export async function runScheduledMaintenance(now = new Date()): Promise<void> {
   const startedAt = Date.now();
   const job = "cleanup_old_workspace_invites";
+  const scheduledRunId = crypto.randomUUID();
+  setScheduledRunId(scheduledRunId);
   try {
     // Workers sockets belong to their invocation, not a global client pool.
     // Own this client so closing it cannot interrupt concurrent Queue work.
@@ -45,7 +48,9 @@ export async function runScheduledMaintenance(now = new Date()): Promise<void> {
     } finally {
       await database.$disconnect();
     }
-    structuredLog("info", "scheduled_maintenance_completed", {
+    logger.info("scheduled_maintenance_completed", {
+      scheduledRunId,
+      scheduledTime: now.toISOString(),
       job,
       deletedCount,
       batchLimitReached: deletedCount === INVITE_CLEANUP_BATCH_SIZE,
@@ -54,7 +59,10 @@ export async function runScheduledMaintenance(now = new Date()): Promise<void> {
     });
   } catch (error) {
     // Database error messages can contain SQL/record data; do not log them.
-    structuredLog("error", "scheduled_maintenance_failed", {
+    logger.error("scheduled_maintenance_failed", {
+      scheduledRunId,
+      scheduledTime: now.toISOString(),
+      error,
       job,
       durationMs: Date.now() - startedAt,
       success: false,

@@ -5,7 +5,8 @@ import {
   PermanentEventProcessingError,
   RetryableEventProcessingError,
 } from "./event-errors";
-import { structuredLog } from "./logger";
+import { logger } from "./logger";
+import { captureUnexpectedError } from "./observability";
 import { sendWebhook } from "./webhook-request";
 import { webhookStore, type WebhookStore } from "./webhook-store";
 
@@ -90,7 +91,12 @@ export async function deliverReportWebhooks(
             environment.AURBIT_ENV === "local" &&
             environment.WEBHOOK_LOCAL_TESTING === "true",
         });
-      } catch {
+      } catch (error) {
+        captureUnexpectedError(error, {
+          eventId: event.eventId,
+          endpointId: endpoint.id,
+          deliveryId: delivery.id,
+        });
         result = {
           status: null,
           retryable: true,
@@ -107,26 +113,28 @@ export async function deliverReportWebhooks(
         lastError: result.error,
         deliveredAt: !result.error ? new Date() : null,
       });
-      structuredLog(
-        result.error ? "warn" : "info",
-        "webhook_delivery_completed",
-        {
-          eventId: event.eventId,
-          eventType: event.type,
-          endpointId: endpoint.id,
-          deliveryId: delivery.id,
-          attempt,
-          responseStatus: result.status,
-          durationMs: Date.now() - now.getTime(),
-          retryable: result.retryable,
-        },
-      );
-      if (result.retryable) retry = true;
-    } catch {
-      retry = true;
-      structuredLog("error", "webhook_delivery_processing_failed", {
+      logger[result.error ? "warn" : "info"]("webhook_delivery_completed", {
         eventId: event.eventId,
         eventType: event.type,
+        endpointId: endpoint.id,
+        deliveryId: delivery.id,
+        attempt,
+        responseStatus: result.status,
+        durationMs: Date.now() - now.getTime(),
+        retryable: result.retryable,
+        errorCode: result.error,
+      });
+      if (result.retryable) retry = true;
+    } catch (error) {
+      retry = true;
+      logger.error("webhook_delivery_processing_failed", {
+        error,
+        eventId: event.eventId,
+        eventType: event.type,
+        endpointId: endpoint.id,
+      });
+      captureUnexpectedError(error, {
+        eventId: event.eventId,
         endpointId: endpoint.id,
       });
     }

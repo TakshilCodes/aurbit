@@ -8,6 +8,7 @@ import Resend from "next-auth/providers/resend";
 import { authCapabilities, optionalAuthEnvironment } from "./lib/environment";
 import { INVALID_PASSWORD_HASH, verifyPassword } from "./lib/password";
 import { loginSchema } from "./lib/validation";
+import { logger } from "./lib/logger";
 
 const providers: Provider[] = [
   Credentials({
@@ -90,6 +91,17 @@ if (
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  logger: {
+    error(error) {
+      logger.error("auth_error", { error });
+    },
+    warn(code) {
+      logger.warn("auth_warning", { errorCode: code });
+    },
+    debug() {
+      /* Auth.js debug metadata may contain tokens or email addresses. */
+    },
+  },
   adapter: PrismaAdapter(db),
   trustHost: true,
   pages: {

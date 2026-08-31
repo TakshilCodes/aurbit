@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-25",
   "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
   "vars": { "AURBIT_ENV": "local" },
   "triggers": { "crons": ["0 3 * * *"] },
   "queues": {
