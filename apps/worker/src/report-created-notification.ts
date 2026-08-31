@@ -12,7 +12,9 @@ import {
   PermanentEventProcessingError,
   RetryableEventProcessingError,
 } from "./event-errors";
-import { structuredLog, type LogFields } from "./logger";
+import { logger } from "./logger";
+import type { Logger } from "@aurbit/logger";
+import { captureUnexpectedError } from "./observability";
 import { createReportCreatedEmail } from "./report-created-email";
 
 export const REPORT_CREATED_NOTIFICATION_TYPE =
@@ -81,11 +83,7 @@ type NotificationDependencies = {
   loadContext?: (
     reportId: string,
   ) => Promise<ReportCreatedNotificationContext | null>;
-  log?: (
-    level: "error" | "info" | "warn",
-    message: string,
-    fields?: LogFields,
-  ) => void;
+  log?: Pick<Logger, "info" | "warn" | "error">;
 };
 
 const recipientSchema = z.string().trim().max(254).email();
@@ -164,7 +162,7 @@ export async function handleReportCreatedNotification(
   event: ReportCreatedEvent,
   dependencies: NotificationDependencies,
 ) {
-  const log = dependencies.log ?? structuredLog;
+  const log = dependencies.log ?? logger;
   const context = await (
     dependencies.loadContext ?? loadReportCreatedNotificationContext
   )(event.reportId);
@@ -212,7 +210,7 @@ export async function handleReportCreatedNotification(
         result.providerMessageId,
       );
       sentCount += 1;
-      log("info", "notification_email_sent", {
+      log.info("notification_email_sent", {
         deliveryId: delivery.id,
         eventId: event.eventId,
         eventType: event.type,
@@ -221,6 +219,13 @@ export async function handleReportCreatedNotification(
         reportId: event.reportId,
       });
     } catch (error) {
+      if (!(error instanceof EmailProviderError)) {
+        captureUnexpectedError(error, {
+          eventId: event.eventId,
+          reportId: event.reportId,
+          deliveryId: delivery.id,
+        });
+      }
       const providerError =
         error instanceof EmailProviderError
           ? error
@@ -236,7 +241,7 @@ export async function handleReportCreatedNotification(
         } catch {
           // The queue retry remains the source of recovery when persistence fails.
         }
-        log("error", "notification_email_retryable_failure", {
+        log.error("notification_email_retryable_failure", {
           deliveryId: delivery.id,
           errorCode: providerError.code,
           eventId: event.eventId,
@@ -252,7 +257,7 @@ export async function handleReportCreatedNotification(
         providerError.code,
       );
       skippedCount += 1;
-      log("warn", "notification_email_permanent_failure", {
+      log.warn("notification_email_permanent_failure", {
         deliveryId: delivery.id,
         errorCode: providerError.code,
         eventId: event.eventId,
@@ -263,7 +268,7 @@ export async function handleReportCreatedNotification(
     }
   }
 
-  log("info", "report_created_notification_processed", {
+  log.info("report_created_notification_processed", {
     eventId: event.eventId,
     eventType: event.type,
     notificationType: REPORT_CREATED_NOTIFICATION_TYPE,

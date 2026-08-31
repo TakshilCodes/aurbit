@@ -4,6 +4,7 @@ import {
   requireUser,
 } from "../../../../lib/authorization";
 import { getReportAttachmentBucket } from "../../../../lib/report-attachment-storage";
+import { reportUnexpectedError } from "../../../../lib/observability";
 
 type RouteContext = {
   params: Promise<{ attachmentId: string }>;
@@ -69,6 +70,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    await reportUnexpectedError("attachment_read_failed", error);
     return new Response("Unable to load attachment", { status: 500 });
   }
 }

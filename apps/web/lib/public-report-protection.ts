@@ -8,6 +8,8 @@ import {
   verifyTurnstileToken,
 } from "@aurbit/turnstile/server";
 import { headers } from "next/headers";
+import { getRequestLogger } from "./logger";
+import { reportUnexpectedError } from "./observability";
 
 const TURNSTILE_ACTION = "public-report";
 
@@ -109,23 +111,35 @@ export async function protectPublicReportRequest(
 ): Promise<
   { allowed: true } | { allowed: false; reason: PublicReportProtectionFailure }
 > {
+  let stage = "rate_limit";
   try {
     const withinLimit = await (
       dependencies.rateLimit ?? checkPublicReportRateLimit
     )(input);
 
     if (!withinLimit) {
+      (await getRequestLogger()).warn("public_report_protection_rejected", {
+        reason: "rate-limited",
+      });
       return { allowed: false, reason: "rate-limited" };
     }
 
+    stage = "turnstile";
     const turnstileValid = await (
       dependencies.verifyTurnstile ?? verifyPublicReportTurnstile
     )(input);
 
+    if (!turnstileValid)
+      (await getRequestLogger()).warn("public_report_protection_rejected", {
+        reason: "turnstile-invalid",
+      });
     return turnstileValid
       ? { allowed: true }
       : { allowed: false, reason: "turnstile-invalid" };
-  } catch {
+  } catch (error) {
+    await reportUnexpectedError("public_report_protection_unavailable", error, {
+      stage,
+    });
     return { allowed: false, reason: "unavailable" };
   }
 }

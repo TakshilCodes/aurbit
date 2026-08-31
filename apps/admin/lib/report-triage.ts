@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireOrganizationMembership } from "./authorization";
 import { AUDIT_ACTIONS, writeAuditLog } from "./audit-log";
 import { enqueueEvent } from "./async-events";
-import { structuredLog } from "@aurbit/async-events/logger";
 
 export const REPORT_TRIAGE_STATUSES = [
   "OPEN",
@@ -160,10 +159,7 @@ export async function updateReportTriage(
       await enqueueEvent({ type: eventType, reportId: result.id });
     } catch {
       // The committed mutation remains successful; no outbox exists yet.
-      structuredLog("error", "async_event_enqueue_failed", {
-        eventType,
-        reportId: result.id,
-      });
+      // enqueueEvent logs/captures the failure with HTTP and event correlation.
     }
   }
   return result;

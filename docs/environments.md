@@ -56,7 +56,13 @@ Real-bucket testing is deferred until a private non-production bucket is availab
 8. Confirm direct bucket URLs and guessed object keys do not provide public access.
 9. Confirm staging and production use different buckets, and run the Cloudflare/OpenNext build and preview from Linux or WSL.
 
+## Logging and exception monitoring
+
+Stage 10A uses shared structured logs, optional Sentry exceptions, and optional direct HTTPS application-log export to Better Stack. Set server-only BETTER_STACK_INGESTING_HOST and BETTER_STACK_SOURCE_TOKEN per app/runtime to enable it; leave both blank for stdout-only local development. No Cloudflare Logpush setup is needed. See [observability setup and code flow](./observability.md) for configuration, privacy controls and staging verification.
+
 ## Local compatibility checks
+
+Both Next.js apps use Next.js 16.3.3 and OpenNext 1.20.4. Keep the adapter at least 1.20.4: the older 1.20.2 rejects the Node.js middleware generated from `proxy.ts`. Node.js middleware support is currently experimental upstream and requires the existing `nodejs_compat` flag. Do not remove the admin authentication gate or request-ID handling to work around a build error. See the [OpenNext middleware support release](https://github.com/opennextjs/opennextjs-cloudflare/releases/tag/%40opennextjs%2Fcloudflare%401.20.3).
 
 Run `pnpm build:cloudflare` to produce Cloudflare Worker bundles for both applications.
 

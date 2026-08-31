@@ -15,9 +15,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aurbit/webhooks": "workspace:*",
     "@aurbit/async-events": "workspace:*",
     "@aurbit/db": "workspace:*",
+    "@aurbit/logger": "workspace:^",
+    "@aurbit/webhooks": "workspace:*",
+    "@sentry/cloudflare": "^10.72.0",
     "resend": "^6.22.1",
     "zod": "^4.4.3"
   },

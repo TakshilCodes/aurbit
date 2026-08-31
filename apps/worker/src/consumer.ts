@@ -7,8 +7,12 @@ import {
   type ReportUpdatedEvent,
 } from "@aurbit/async-events";
 import { webhookRetryDelay } from "@aurbit/webhooks";
-import { PermanentEventProcessingError } from "./event-errors";
-import { structuredLog } from "./logger";
+import {
+  PermanentEventProcessingError,
+  RetryableEventProcessingError,
+} from "./event-errors";
+import { logger } from "./logger";
+import { captureUnexpectedError } from "./observability";
 
 export type EventHandlers = {
   reportCreated: (event: ReportCreatedEvent) => Promise<void>;
@@ -58,7 +62,7 @@ export async function consumeAurbitEventBatch(
       event = parseAurbitEvent(message.body);
     } catch (error) {
       if (error instanceof InvalidAurbitEventError) {
-        structuredLog("warn", "async_event_rejected", {
+        logger.warn("async_event_rejected", {
           attempts: message.attempts,
           messageId: message.id,
           queue: batch.queue,
@@ -71,10 +75,18 @@ export async function consumeAurbitEventBatch(
 
     try {
       await processAurbitEvent(event, handlers);
+      logger.info("async_event_processed", {
+        eventId: event.eventId,
+        eventType: event.type,
+        reportId: event.reportId,
+        messageId: message.id,
+        queue: batch.queue,
+        attempts: message.attempts,
+      });
       message.ack();
     } catch (error) {
       if (error instanceof PermanentEventProcessingError) {
-        structuredLog("warn", "async_event_permanent_failure", {
+        logger.warn("async_event_permanent_failure", {
           attempts: message.attempts,
           errorCode: error.code,
           eventId: event.eventId,
@@ -87,7 +99,9 @@ export async function consumeAurbitEventBatch(
         continue;
       }
 
-      structuredLog("error", "async_event_processing_failed", {
+      logger.error("async_event_processing_failed", {
+        error,
+        retryDelaySeconds: webhookRetryDelay(message.attempts),
         attempts: message.attempts,
         eventId: event.eventId,
         eventType: event.type,
@@ -95,6 +109,13 @@ export async function consumeAurbitEventBatch(
         queue: batch.queue,
         reportId: event.reportId,
       });
+      if (!(error instanceof RetryableEventProcessingError)) {
+        captureUnexpectedError(error, {
+          eventId: event.eventId,
+          reportId: event.reportId,
+          attempts: message.attempts,
+        });
+      }
       message.retry({ delaySeconds: webhookRetryDelay(message.attempts) });
     }
   }

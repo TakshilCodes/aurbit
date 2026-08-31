@@ -91,9 +91,8 @@ it("never enqueues a failed transaction; enqueue failure preserves the committed
       value: "HIGH",
     }),
   ).resolves.toMatchObject({ id: reportId });
-  expect(log).toHaveBeenCalledWith(
-    expect.stringContaining("async_event_enqueue_failed"),
-  );
+  // The producer owns enqueue failure logs; triage must not log a duplicate.
+  expect(log).not.toHaveBeenCalled();
   log.mockRestore();
 });
 

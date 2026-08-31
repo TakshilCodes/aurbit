@@ -8,6 +8,8 @@ import {
   verifyTurnstileToken as verifySharedTurnstileToken,
 } from "@aurbit/turnstile/server";
 import { headers } from "next/headers";
+import { getRequestLogger } from "./logger";
+import { reportUnexpectedError } from "./observability";
 
 export const AUTH_RATE_LIMITS = {
   login: { attempts: 10, windowSeconds: 10 * 60 },
@@ -121,23 +123,38 @@ export async function protectAuthRequest(
   input: ProtectionInput,
   dependencies: ProtectionDependencies = {},
 ): Promise<ProtectionResult> {
+  let stage = "rate_limit";
   try {
     const withinLimit = await (dependencies.rateLimit ?? checkAuthRateLimit)(
       input,
     );
 
     if (!withinLimit) {
+      (await getRequestLogger()).warn("auth_protection_rejected", {
+        flow: input.flow,
+        reason: "rate-limited",
+      });
       return { allowed: false, reason: "rate-limited" };
     }
 
+    stage = "turnstile";
     const turnstileValid = await (
       dependencies.verifyTurnstile ?? verifyTurnstileToken
     )(input);
 
+    if (!turnstileValid)
+      (await getRequestLogger()).warn("auth_protection_rejected", {
+        flow: input.flow,
+        reason: "turnstile-invalid",
+      });
     return turnstileValid
       ? { allowed: true }
       : { allowed: false, reason: "turnstile-invalid" };
-  } catch {
+  } catch (error) {
+    await reportUnexpectedError("auth_protection_unavailable", error, {
+      flow: input.flow,
+      stage,
+    });
     return { allowed: false, reason: "unavailable" };
   }
 }
