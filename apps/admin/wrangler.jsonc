@@ -32,7 +32,12 @@
       },
     },
     "production": {
-      "r2_buckets": [{ "binding": "BUG_REPORT_ATTACHMENTS" }],
+      "r2_buckets": [
+        {
+          "binding": "BUG_REPORT_ATTACHMENTS",
+          "bucket_name": "aurbit-attachments-production",
+        },
+      ],
       "queues": {
         "producers": [
           { "binding": "AURBIT_EVENTS", "queue": "aurbit-events-production" },

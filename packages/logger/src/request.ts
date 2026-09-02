@@ -1,4 +1,6 @@
 const REQUEST_ID_HEADER = "x-request-id";
+const CLOUDFLARE_RAY_HEADER = "cf-ray";
+const CLOUDFLARE_RAY_PATTERN = /^[a-f0-9]{16}(?:-[a-z]{3})?$/i;
 
 export function createRequestContext(incoming: Headers) {
   const requestId = crypto.randomUUID();
@@ -17,4 +19,11 @@ export function requestIdFromHeaders(headers: Pick<Headers, "get">): string {
     )
     ? value
     : crypto.randomUUID();
+}
+
+export function cloudflareRayIdFromHeaders(
+  headers: Pick<Headers, "get">,
+): string | undefined {
+  const value = headers.get(CLOUDFLARE_RAY_HEADER);
+  return value && CLOUDFLARE_RAY_PATTERN.test(value) ? value : undefined;
 }
