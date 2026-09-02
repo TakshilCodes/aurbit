@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLogger, runtimeEnvironment, serializeError } from "./index";
-import { createRequestContext, requestIdFromHeaders } from "./request";
+import {
+  cloudflareRayIdFromHeaders,
+  createRequestContext,
+  requestIdFromHeaders,
+} from "./request";
 import { captureSafely, sanitizeSentryEvent, sentryDsn } from "./sentry";
 
 const logger = createLogger({
@@ -144,6 +148,25 @@ describe("operational logging", () => {
 });
 
 describe("HTTP request correlation", () => {
+  it("accepts Cloudflare Ray IDs without trusting application request IDs", () => {
+    const headers = new Headers({
+      "cf-ray": "230b030023ae2822-BOM",
+      "x-request-id": crypto.randomUUID(),
+    });
+    expect(cloudflareRayIdFromHeaders(headers)).toBe("230b030023ae2822-BOM");
+  });
+  it("rejects absent or malformed Cloudflare Ray IDs", () => {
+    for (const value of [
+      "",
+      "client-controlled",
+      "230b030023ae2822-TOOLONG",
+      "x".repeat(1000),
+    ]) {
+      expect(
+        cloudflareRayIdFromHeaders(new Headers({ "cf-ray": value })),
+      ).toBeUndefined();
+    }
+  });
   it("overwrites even a plausible client-provided ID and forwards the generated ID", () => {
     const incoming = new Headers({
       "x-request-id": crypto.randomUUID(),

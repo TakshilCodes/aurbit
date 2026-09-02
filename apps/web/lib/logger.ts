@@ -1,5 +1,5 @@
 import { createLogger, runtimeEnvironment } from "@aurbit/logger";
-import { requestIdFromHeaders } from "@aurbit/logger/request";
+import { cloudflareRayIdFromHeaders } from "@aurbit/logger/request";
 import { createBackgroundLogSink } from "@aurbit/logger/better-stack";
 import { after } from "next/server";
 import { headers } from "next/headers";
@@ -28,7 +28,7 @@ export const logger = createLogger({
 
 export async function getRequestId() {
   try {
-    return requestIdFromHeaders(await headers());
+    return cloudflareRayIdFromHeaders(await headers()) ?? crypto.randomUUID();
   } catch {
     return crypto.randomUUID();
   } // Unit tests/build-time code have no HTTP context.

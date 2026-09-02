@@ -7,6 +7,7 @@ vi.mock("next/headers", () => ({
   headers: vi.fn(() =>
     Promise.resolve(
       new Headers({
+        "cf-ray": "230b030023ae2822-BOM",
         "x-request-id": "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
       }),
     ),
@@ -53,7 +54,8 @@ it("batches request logger records after response and preserves app/request iden
   const body = requestBody();
   expect(JSON.parse(body)).toHaveLength(2);
   expect(body).toContain("aurbit-web");
-  expect(body).toContain("aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa");
+  expect(body).toContain("230b030023ae2822-BOM");
+  expect(body).not.toContain("aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa");
   expect(body).toContain("event_1");
 });
 

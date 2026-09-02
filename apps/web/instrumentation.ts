@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { runtimeEnvironment } from "@aurbit/logger";
 import { sentryDsn, sanitizeSentryEvent } from "@aurbit/logger/sentry";
-import { requestIdFromHeaders } from "@aurbit/logger/request";
+import { cloudflareRayIdFromHeaders } from "@aurbit/logger/request";
 import { logger } from "./lib/logger";
 
 export function register() {
@@ -30,12 +30,13 @@ export const onRequestError: typeof Sentry.captureRequestError = (
   request,
   context,
 ) => {
-  const incomingId = request.headers["x-request-id"];
-  const requestId = requestIdFromHeaders(
-    new Headers({
-      "x-request-id": typeof incomingId === "string" ? incomingId : "",
-    }),
-  );
+  const incomingRayId = request.headers["cf-ray"];
+  const requestId =
+    cloudflareRayIdFromHeaders(
+      new Headers({
+        "cf-ray": typeof incomingRayId === "string" ? incomingRayId : "",
+      }),
+    ) ?? crypto.randomUUID();
   logger.error("http_request_failed", {
     requestId,
     method: request.method,
@@ -47,7 +48,7 @@ export const onRequestError: typeof Sentry.captureRequestError = (
       scope.setTag("requestId", requestId);
       Sentry.captureRequestError(
         error,
-        { ...request, path: "/", headers: { "x-request-id": requestId } },
+        { ...request, path: "/", headers: { "cf-ray": requestId } },
         context,
       );
     });
