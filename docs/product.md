@@ -1102,13 +1102,13 @@ Applications are deployed independently.
 
 ```text
 apps/web
-→ Cloudflare Worker via OpenNext
+→ Vercel
 → aurbit.takshil.in
 ```
 
 ```text
 apps/admin
-→ separate Cloudflare Worker via OpenNext
+→ separate Vercel project
 → admin.aurbit.takshil.in
 ```
 
@@ -1126,24 +1126,25 @@ The background Worker does not require a public domain unless an intentional HTT
 
 # Core Production Technologies and Their Purpose
 
-| Technology               | Aurbit responsibility                    |
-| ------------------------ | ---------------------------------------- |
-| PostgreSQL               | durable application data                 |
-| Prisma                   | database access and migrations           |
-| Redis                    | temporary/cache/idempotency concerns     |
-| Cloudflare R2            | screenshots and attachments              |
-| Cloudflare Queues        | asynchronous jobs                        |
-| Cloudflare Workers       | Next.js hosting and background execution |
-| Cloudflare Cron Triggers | scheduled maintenance                    |
-| Turnstile                | public-form abuse protection             |
-| Resend                   | transactional email                      |
-| TanStack Query           | dashboard server-state management        |
-| Sentry                   | error monitoring                         |
-| Structured logging       | production debugging                     |
-| Vitest                   | business logic/integration testing       |
-| Playwright               | critical end-to-end testing              |
-| Docker                   | repeatable local dependencies/tooling    |
-| GitHub Actions           | CI/CD automation                         |
+| Technology               | Aurbit responsibility                 |
+| ------------------------ | ------------------------------------- |
+| PostgreSQL               | durable application data              |
+| Prisma                   | database access and migrations        |
+| Redis                    | temporary/cache/idempotency concerns  |
+| Cloudflare R2            | screenshots and attachments           |
+| Cloudflare Queues        | asynchronous jobs                     |
+| Vercel                   | Next.js hosting for web and admin     |
+| Cloudflare Workers       | background Queue and Cron execution   |
+| Cloudflare Cron Triggers | scheduled maintenance                 |
+| Turnstile                | public-form abuse protection          |
+| Resend                   | transactional email                   |
+| TanStack Query           | dashboard server-state management     |
+| Sentry                   | error monitoring                      |
+| Structured logging       | production debugging                  |
+| Vitest                   | business logic/integration testing    |
+| Playwright               | critical end-to-end testing           |
+| Docker                   | repeatable local dependencies/tooling |
+| GitHub Actions           | CI/CD automation                      |
 
 ---
 

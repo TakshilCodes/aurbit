@@ -1,71 +1,74 @@
-# Environments
+# Environments and deployment
 
-Aurbit uses three isolated environment tiers. Resources and secrets must not be shared across tiers.
+Aurbit uses Local, Preview / Staging, and Production. Databases, Redis, R2 buckets, Queues, credentials, and secrets must be isolated between staging and production.
 
-| Environment       | Purpose                                             | Resources                                                                                                | Secrets                                             |
-| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Local             | Development on a contributor's machine              | Next.js development servers, Docker PostgreSQL on `localhost:5433`, and Docker Redis on `localhost:6379` | Untracked local environment files                   |
-| Preview / Staging | Review and integration validation before production | Separate Cloudflare Workers and separate remote data services from production                            | Configured in the hosting platform, never committed |
-| Production        | Live customer traffic                               | Dedicated production Workers and production-only data services                                           | Configured in the hosting platform, never committed |
+## Runtime ownership
 
-## Current variables
+| Runtime       | Hosting            | Responsibility                                                                |
+| ------------- | ------------------ | ----------------------------------------------------------------------------- |
+| `apps/web`    | Vercel             | Public site, widget, hosted report form, report and attachment creation       |
+| `apps/admin`  | Vercel             | Auth.js, workspaces, triage, private attachment downloads, webhook management |
+| `apps/worker` | Cloudflare Workers | Queue consumption, email notifications, outbound webhooks, and Cron           |
 
-`packages/db/.env.example` documents `DATABASE_URL` for Prisma commands. `apps/admin/.env.example` documents the authenticated dashboard, `apps/web/.env.example` documents the public application, and `apps/worker/.dev.vars.example` documents local background-Worker bindings:
+Cloudflare continues to provide DNS, Turnstile, private R2 buckets, Queues, and Cron. `aurbit.takshil.in` points to the web Vercel project and `admin.aurbit.takshil.in` points to the admin Vercel project.
 
-- `DATABASE_URL` connects the admin application to PostgreSQL.
-- `AUTH_SECRET` signs and encrypts Auth.js session data and must be unique per environment.
-- `AUTH_URL` is the canonical admin application URL used in authentication links.
-- `PUBLIC_APP_URL` is the canonical public application URL used to validate Turnstile hostnames for bug reports.
-- `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` enable Google sign-in when both are configured.
-- `AUTH_RESEND_KEY` and `AUTH_EMAIL_FROM` enable magic links, email verification, password-reset email, workspace invitations, and background report-notification email. The Worker uses the same names; configure them separately on each deployed Worker that consumes them.
-- `NEXT_PUBLIC_TURNSTILE_SITE_KEY` renders Cloudflare Turnstile; `TURNSTILE_SECRET_KEY` validates auth and public-report tokens server-side in their respective applications.
-- `REDIS_URL` connects local rate limiting to the existing Docker Redis service.
-- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` connect staging and production rate limiting to Redis over HTTP.
+## Local
 
-Provider-backed flows remain unavailable when their credentials are absent; the application does not substitute fake providers or secrets. Preview / Staging and Production must use separate databases, OAuth applications or callback configuration where required, Resend configuration, and secrets supplied through their environment-specific secret stores. Rate limiting selects one backend from explicit environment configuration: complete Upstash REST credentials take precedence for Cloudflare preview/staging/production; otherwise `REDIS_URL` uses the existing Docker Redis service for local development. Partial Upstash configuration or a missing backend fails closed.
+Run Docker PostgreSQL on `localhost:5433` and Redis on `localhost:6379`, then run `pnpm dev`. The Next apps use their ignored `.env.local` files. The Cloudflare Worker uses `apps/worker/.dev.vars` and Wrangler's local Queue simulator.
 
-## Cloudflare applications
+Attachments are stored under the repository's ignored `.aurbit/storage` directory. Both Next apps use that directory, so an attachment uploaded by web can be downloaded by admin without a production R2 account. The local-only Queue producer posts validated event envelopes to `http://127.0.0.1:8787/__aurbit/events`; the Worker puts them into its local Queue. Set `AURBIT_LOCAL_QUEUE_URL` only when the local Worker uses another loopback port.
 
-The applications remain independently buildable and deployable:
+## Preview / Staging
 
-- `apps/web` targets `aurbit.takshil.in`.
-- `apps/admin` targets `admin.aurbit.takshil.in`.
-- `apps/worker` is the independently deployed Queue consumer and has no public application route.
+Create two Vercel projects from this repository with root directories `apps/web` and `apps/admin`. Give both the Preview environment a staging database, staging Upstash Redis, staging R2 bucket/credentials, and the staging Cloudflare Queue ID/API token. Never point Preview at production resources.
 
-Stage 3 provides local Cloudflare-compatible builds and previews only. Custom domains, remote secrets, and production deployment automation are intentionally deferred until the real deployment stage.
+Deploy `apps/worker` to its Cloudflare `staging` environment. Its Queue consumer, R2/Queue bindings, secrets, and database URL must match the staging tier.
 
-## Private report attachments
+## Production
 
-Both `apps/web` and `apps/admin` declare an R2 binding named `BUG_REPORT_ATTACHMENTS`. Within an environment, bind both Workers to the same private R2 bucket: the public application writes validated report attachments and the authenticated admin application reads them through a tenant-scoped route. Do not enable public bucket access.
+Create the same two Vercel projects with production-only values and attach:
 
-Choose separate buckets for preview/staging and production. Bucket names and Cloudflare account details are deployment configuration and are intentionally not committed to the repository.
+- `aurbit.takshil.in` to `apps/web`
+- `admin.aurbit.takshil.in` to `apps/admin`
 
-Local `pnpm dev` uses Wrangler's local R2 simulation through OpenNext, so submitting reports with attachments does not require a real Cloudflare bucket. Each application has isolated local simulation state to avoid database locking during parallel development and builds. To test the complete cross-application upload-and-admin-download path, configure the same `BUG_REPORT_ATTACHMENTS` binding for both application Workers against a private non-production R2 bucket.
+Deploy `apps/worker` with Wrangler's `production` environment. Cloudflare DNS may remain proxied, but the Next.js origin is Vercel.
 
-### Real R2 verification checklist
+## Vercel variables
 
-Real-bucket testing is deferred until a private non-production bucket is available. Before promoting attachment storage to production, verify all of the following against staging:
+Both Next apps require `DATABASE_URL`, `NEXT_PUBLIC_APP_ENV`, their existing Turnstile and rate-limit values, and:
 
-1. Bind both staging Workers to the same private bucket as `BUG_REPORT_ATTACHMENTS` and confirm public access remains disabled.
-2. Submit PNG, JPEG, and WebP images through both the hosted report page and the customer-site widget iframe.
-3. Confirm every object uses `bug-reports/<random-submission-id>/<random-object-id>.<detected-extension>` and never contains a reporter filename or tenant identifier.
-4. Confirm the R2 object size and HTTP content type match the associated `Attachment` row.
-5. Confirm unsupported, empty, oversized, signature-mismatched, and excess files create neither R2 objects nor attachment rows.
-6. Force an R2 upload failure and a database creation failure; confirm the user sees a generic error and every attempted object is deleted where the R2 operation completed or may have completed.
-7. Confirm an authenticated member can download an attachment through the admin route, while signed-out and cross-tenant users cannot access it.
-8. Confirm direct bucket URLs and guessed object keys do not provide public access.
-9. Confirm staging and production use different buckets, and run the Cloudflare/OpenNext build and preview from Linux or WSL.
+```dotenv
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_QUEUE_ID=
+CLOUDFLARE_QUEUE_API_TOKEN=
+```
 
-## Logging and exception monitoring
+R2 credentials are server-only S3 API credentials scoped to the private environment bucket. The Queue token is server-only and requires Cloudflare Queues Edit permission for the account. Use the queue's immutable ID, not its display name. Automated tests mock both providers.
 
-Stage 10A uses shared structured logs, optional Sentry exceptions, and optional direct HTTPS application-log export to Better Stack. Set server-only BETTER_STACK_INGESTING_HOST and BETTER_STACK_SOURCE_TOKEN per app/runtime to enable it; leave both blank for stdout-only local development. No Cloudflare Logpush setup is needed. See [observability setup and code flow](./observability.md) for configuration, privacy controls and staging verification.
+Web also requires `PUBLIC_APP_URL` and its existing public-report Turnstile configuration. Admin requires its existing Auth.js, Resend, webhook, Turnstile, and observability values. `AUTH_URL` is `https://admin.aurbit.takshil.in` in production. Register this production Google OAuth redirect URI:
 
-## Local compatibility checks
+```text
+https://admin.aurbit.takshil.in/api/auth/callback/google
+```
 
-Both Next.js apps use Next.js 16.3.3 and OpenNext 1.20.4. Keep the adapter at least 1.20.4: the older 1.20.2 rejects the Node.js middleware generated from `proxy.ts`. Node.js middleware support is currently experimental upstream and requires the existing `nodejs_compat` flag. Do not remove the admin authentication gate or request-ID handling to work around a build error. See the [OpenNext middleware support release](https://github.com/opennextjs/opennextjs-cloudflare/releases/tag/%40opennextjs%2Fcloudflare%401.20.3).
+Keep the localhost callback `http://localhost:3001/api/auth/callback/google` for development.
 
-Run `pnpm build:cloudflare` to produce Cloudflare Worker bundles for both applications.
+The complete per-app lists live in `apps/web/.env.example`, `apps/admin/.env.example`, and `apps/worker/.dev.vars.example`. Do not commit real values.
 
-Run `pnpm preview:cloudflare:web` or `pnpm preview:cloudflare:admin` to build and serve one application in the local Workers runtime. These preview commands are intentionally separate because each application is deployed independently.
+## R2 and uploads
 
-OpenNext is not fully compatible with native Windows because its bundle step creates symbolic links. On Windows, run full Cloudflare builds and previews from WSL or another Linux environment. `pnpm dev` / `pnpm dev:queue` run Next dev plus the local Queue consumer without that build step; see [the local Queue workflow](./async-events.md#local-end-to-end-test). The development-only service binding forwards events into the consumer's local Queue simulator. Production continues to use direct Cloudflare Queue bindings.
+Web and admin use R2's S3-compatible HTTPS API from Vercel; no Worker R2 binding is used by either Next app. Both deployments must target the same private bucket within an environment. Generated keys and tenant-scoped admin downloads remain unchanged. Failed report creation still deletes any objects uploaded for that submission.
+
+Vercel Functions limit request and response bodies to 4.5 MB. The public form therefore accepts at most 4 MB of attachments in total, leaving multipart overhead. Larger-file/direct-upload infrastructure is intentionally not introduced by this runtime migration.
+
+## Queue publishing
+
+Web and admin send the existing versioned event envelope to Cloudflare's Queue HTTP endpoint. `apps/worker` remains the consumer and its retry, idempotency, email, webhook, logging, and Cron behavior is unchanged. A database commit remains successful if the subsequent enqueue fails; the producer logs the delivery gap as before.
+
+## Vercel project settings
+
+For each Vercel project, select the repository and set only the Root Directory (`apps/web` or `apps/admin`). Vercel detects Next.js and pnpm from the workspace. Keep the normal install and build defaults unless project inspection proves an override is needed; no `vercel.json` is required.

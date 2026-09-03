@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { createObjectStorageFromEnvironment } from "@aurbit/object-storage";
 import {
   getPublicReportAttachmentSelectionError,
   PUBLIC_REPORT_ATTACHMENT_POLICY,
@@ -26,15 +26,6 @@ export type PublicReportAttachmentStore = {
     body: ArrayBuffer,
     contentType: PublicReportAttachmentContentType,
   ): Promise<void>;
-};
-
-type ReportAttachmentBucket = {
-  delete(keys: string[]): Promise<void>;
-  put(
-    key: string,
-    body: ArrayBuffer,
-    options: { httpMetadata: { contentType: string } },
-  ): Promise<unknown>;
 };
 
 export class PublicReportAttachmentValidationError extends Error {
@@ -158,31 +149,5 @@ export function createPublicReportAttachmentObjectKey(
 }
 
 export function getPublicReportAttachmentStore(): PublicReportAttachmentStore {
-  const { env } = getCloudflareContext() as unknown as {
-    env: { BUG_REPORT_ATTACHMENTS?: ReportAttachmentBucket };
-  };
-  const bucket = env.BUG_REPORT_ATTACHMENTS;
-
-  if (!bucket) {
-    throw new Error(
-      "Public report attachment storage is not configured. Bind BUG_REPORT_ATTACHMENTS to a private R2 bucket.",
-    );
-  }
-
-  return {
-    async delete(keys) {
-      if (keys.length > 0) {
-        await bucket.delete(keys);
-      }
-    },
-    async put(key, body, contentType) {
-      const result = await bucket.put(key, body, {
-        httpMetadata: { contentType },
-      });
-
-      if (!result) {
-        throw new Error("R2 attachment upload failed");
-      }
-    },
-  };
+  return createObjectStorageFromEnvironment();
 }

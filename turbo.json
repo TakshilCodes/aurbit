@@ -29,17 +29,21 @@
     "REDIS_URL",
     "TURNSTILE_SECRET_KEY",
     "UPSTASH_REDIS_REST_TOKEN",
-    "UPSTASH_REDIS_REST_URL"
+    "UPSTASH_REDIS_REST_URL",
+    "AURBIT_LOCAL_QUEUE_URL",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_QUEUE_API_TOKEN",
+    "CLOUDFLARE_QUEUE_ID",
+    "R2_ACCESS_KEY_ID",
+    "R2_ACCOUNT_ID",
+    "R2_BUCKET_NAME",
+    "R2_SECRET_ACCESS_KEY"
   ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
-    },
-    "cf:build": {
-      "dependsOn": ["^build"],
-      "outputs": [".open-next/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]

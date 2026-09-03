@@ -40,7 +40,7 @@ export function AttachmentPicker({
   return (
     <FormField
       error={selectionError ?? serverError}
-      hint={`Optional. Up to ${PUBLIC_REPORT_ATTACHMENT_POLICY.maxCount} PNG, JPEG, or WebP images, 5 MB each.`}
+      hint={`Optional. Up to ${PUBLIC_REPORT_ATTACHMENT_POLICY.maxCount} PNG, JPEG, or WebP images, 4 MB total.`}
       id="report-attachments"
       label="Screenshots"
     >

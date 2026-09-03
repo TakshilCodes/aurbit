@@ -9,28 +9,15 @@ import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { getPlatformProxy, unstable_readConfig as readConfig } from "wrangler";
+import { unstable_readConfig as readConfig } from "wrangler";
 
-// Exercises the actual Worker bundle, local service RPC, Queue and consumer.
-// Separate configuration/state and dummy credentials prevent real email sends.
 const workerRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryDirectory = await mkdtemp(join(tmpdir(), "aurbit-queue-smoke-"));
 const workerName = `aurbit-queue-smoke-${process.pid}`;
 const config = readConfig({ config: join(workerRoot, "wrangler.jsonc") });
-const webConfig = readConfig({
-  config: resolve(workerRoot, "../web/wrangler.jsonc"),
-});
-const service = webConfig.services.find(
-  (binding) => binding.binding === "AURBIT_EVENTS_LOCAL",
-);
-assert.ok(service, "Web must bind the local Queue producer service");
-assert.equal(service.service, config.name);
-assert.equal(service.entrypoint, "LocalQueueProducer");
 const workerConfigPath = join(temporaryDirectory, "worker.json");
-const producerConfigPath = join(temporaryDirectory, "producer.json");
 const eventId = randomUUID();
 let worker;
-let proxy;
 let fixture;
 let output = "";
 
@@ -66,20 +53,13 @@ try {
       compatibility_flags: config.compatibility_flags,
       queues: config.queues,
       vars: {
+        AURBIT_ENV: "local",
         DATABASE_URL: "postgresql://unused:unused@127.0.0.1:1/unused",
         AUTH_URL: "http://localhost:3001",
         AUTH_RESEND_KEY: "test-not-a-real-key",
         AUTH_EMAIL_FROM: "Aurbit <test@example.com>",
         ...fixture?.bindings,
       },
-    }),
-  );
-  await writeFile(
-    producerConfigPath,
-    JSON.stringify({
-      name: `${workerName}-producer`,
-      compatibility_date: config.compatibility_date,
-      services: [{ ...service, service: workerName }],
     }),
   );
   const require = createRequire(import.meta.url);
@@ -107,23 +87,35 @@ try {
   });
   await waitFor(() => output.includes("Ready on"), "Worker startup");
   console.log("Worker startup passed (real workerd + Prisma import).");
-  proxy = await getPlatformProxy({
-    configPath: producerConfigPath,
-    persist: false,
-    remoteBindings: false,
-  });
-  await assert.rejects(async () =>
-    proxy.env.AURBIT_EVENTS_LOCAL.send({ type: "unsupported" }),
+
+  const readyUrl = output.match(/Ready on (https?:\/\/[^\s]+)/)?.[1];
+  assert.ok(readyUrl, "Worker local URL was not reported");
+
+  const invalidResponse = await globalThis.fetch(
+    `${readyUrl}/__aurbit/events`,
+    {
+      body: JSON.stringify({ body: { type: "unsupported" } }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    },
   );
-  // Resolved is webhook-only. The deliberately unreachable DB must cause a retry,
-  // proving real routing without sending emails or customer HTTP requests.
-  await proxy.env.AURBIT_EVENTS_LOCAL.send({
-    type: "report.resolved",
-    version: 1,
-    eventId,
-    occurredAt: new Date().toISOString(),
-    reportId: fixture?.reportId ?? "queue-smoke-no-email",
+  assert.equal(invalidResponse.status, 400);
+
+  const response = await globalThis.fetch(`${readyUrl}/__aurbit/events`, {
+    body: JSON.stringify({
+      body: {
+        type: "report.resolved",
+        version: 1,
+        eventId,
+        occurredAt: new Date().toISOString(),
+        reportId: fixture?.reportId ?? "queue-smoke-no-email",
+      },
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
   });
+  assert.equal(response.status, 204);
+
   await waitFor(
     () =>
       output.includes(eventId) &&
@@ -137,17 +129,17 @@ try {
   if (fixture) {
     await fixture.verify();
     console.log(
-      "Queue -> Worker -> signed loopback POST -> durable DELIVERED record passed. No email/customer requests.",
+      "HTTP producer -> Cloudflare Queue -> Worker -> signed loopback POST -> durable DELIVERED record passed.",
     );
-  } else
+  } else {
     console.log(
-      "Local binding -> Cloudflare Queue -> Worker retry path passed. No email or webhook sent.",
+      "HTTP producer -> Cloudflare Queue -> Worker retry path passed. No email or webhook sent.",
     );
+  }
 } catch (error) {
   console.error("Queue smoke test failed:", error);
   process.exitCode = 1;
 } finally {
-  await proxy?.dispose();
   if (worker && worker.exitCode === null) {
     const exited = new Promise((done) => worker.once("exit", done));
     worker.kill();

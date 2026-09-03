@@ -15,8 +15,8 @@ Production-quality multi-tenant bug-reporting SaaS.
 
 ## Deployment
 
-- apps/web → Cloudflare Workers → aurbit.takshil.in
-- apps/admin → Cloudflare Workers → admin.aurbit.takshil.in
+- apps/web → Vercel → aurbit.takshil.in
+- apps/admin → Vercel → admin.aurbit.takshil.in
 
 ## Stack
 

@@ -2,7 +2,8 @@ export const PUBLIC_REPORT_ATTACHMENT_POLICY = {
   allowedContentTypes: ["image/png", "image/jpeg", "image/webp"],
   maxCount: 3,
   maxFileNameLength: 255,
-  maxFileSizeBytes: 5 * 1024 * 1024,
+  maxFileSizeBytes: 4_000_000,
+  maxTotalSizeBytes: 4_000_000,
 } as const;
 
 export type PublicReportAttachmentContentType =
@@ -29,8 +30,15 @@ export function getPublicReportAttachmentSelectionError(
     }
 
     if (file.size > PUBLIC_REPORT_ATTACHMENT_POLICY.maxFileSizeBytes) {
-      return "Each attachment must be 5 MB or smaller.";
+      return "Each attachment must be 4 MB or smaller.";
     }
+  }
+
+  if (
+    files.reduce((total, file) => total + file.size, 0) >
+    PUBLIC_REPORT_ATTACHMENT_POLICY.maxTotalSizeBytes
+  ) {
+    return "Attachments must total 4 MB or less.";
   }
 
   return null;

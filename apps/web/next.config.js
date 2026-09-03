@@ -1,22 +1,12 @@
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import { withSentryConfig } from "@sentry/nextjs";
 import { fileURLToPath } from "node:url";
-
-initOpenNextCloudflareForDev();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
-  outputFileTracingIncludes: {
-    // Node tracing selects pg-cloudflare's empty stub; OpenNext needs the workerd files.
-    "/*": [
-      "../../node_modules/.pnpm/pg-cloudflare@*/node_modules/pg-cloudflare/dist/**/*.js",
-      "../../node_modules/.pnpm/pg-cloudflare@*/node_modules/pg-cloudflare/esm/**/*.mjs",
-    ],
-  },
   experimental: {
     serverActions: {
-      bodySizeLimit: "16mb",
+      bodySizeLimit: "4.2mb",
     },
   },
 };

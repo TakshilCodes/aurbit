@@ -2,44 +2,38 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { enqueueEvent } from "./async-events";
 
 const mocks = vi.hoisted(() => ({
-  directSend: vi.fn(),
-  localSend: vi.fn(),
-  context: vi.fn(),
+  send: vi.fn(),
 }));
 
-vi.mock("@opennextjs/cloudflare", () => ({
-  getCloudflareContext: mocks.context,
-}));
+vi.mock("@aurbit/async-events", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("@aurbit/async-events")>();
+  return {
+    ...original,
+    createEventQueueFromEnvironment: () => ({ send: mocks.send }),
+  };
+});
 
 beforeEach(() => {
   vi.resetAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   vi.spyOn(console, "info").mockImplementation(() => undefined);
-  vi.stubEnv("NODE_ENV", "production");
-  mocks.context.mockReturnValue({
-    env: {
-      AURBIT_EVENTS: { send: mocks.directSend },
-      AURBIT_EVENTS_LOCAL: { send: mocks.localSend },
-    },
-  });
+  mocks.send.mockResolvedValue(undefined);
 });
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => vi.restoreAllMocks());
 
-describe("event producer runtime selection", () => {
-  it("uses the real Queue binding outside Next development", async () => {
+describe("event producer", () => {
+  it("sends the same minimal versioned envelope through the configured adapter", async () => {
     const event = await enqueueEvent({
       type: "report.created",
       reportId: "report_1",
     });
-    expect(mocks.directSend).toHaveBeenCalledWith(event);
+
+    expect(mocks.send).toHaveBeenCalledWith(event);
     expect(console.info).toHaveBeenCalledWith(
       expect.stringContaining(event.eventId),
     );
-    expect(console.info).toHaveBeenCalledWith(
-      expect.stringContaining('"requestId":'),
-    );
-    expect(mocks.localSend).not.toHaveBeenCalled();
     expect(Object.keys(event).sort()).toEqual([
       "eventId",
       "occurredAt",
@@ -49,44 +43,12 @@ describe("event producer runtime selection", () => {
     ]);
   });
 
-  it("sends the same minimal envelope through the local Queue bridge in Next dev", async () => {
-    vi.stubEnv("NODE_ENV", "development");
-    const event = await enqueueEvent({
-      type: "report.created",
-      reportId: "report_1",
-    });
-    expect(mocks.localSend).toHaveBeenCalledWith(event);
-    expect(event.eventId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(mocks.directSend).not.toHaveBeenCalled();
-  });
+  it("preserves publish failures and records them without exposing credentials", async () => {
+    mocks.send.mockRejectedValue(new Error("Queue unavailable"));
 
-  it("does not silently use an unconnected simulator when the local bridge is absent", async () => {
-    vi.stubEnv("NODE_ENV", "development");
-    mocks.context.mockReturnValue({
-      env: { AURBIT_EVENTS: { send: mocks.directSend } },
-    });
     await expect(
-      enqueueEvent({ type: "report.created", reportId: "report_1" }),
-    ).rejects.toThrow("Local async events are not configured");
-    expect(mocks.directSend).not.toHaveBeenCalled();
-  });
-
-  it("does not fall back to the local bridge when the production Queue is missing", async () => {
-    mocks.context.mockReturnValue({
-      env: { AURBIT_EVENTS_LOCAL: { send: mocks.localSend } },
-    });
-    await expect(
-      enqueueEvent({ type: "report.created", reportId: "report_1" }),
-    ).rejects.toThrow("Async events are not configured");
-    expect(mocks.localSend).not.toHaveBeenCalled();
-  });
-
-  it("propagates local dispatch failures", async () => {
-    vi.stubEnv("NODE_ENV", "development");
-    mocks.localSend.mockRejectedValue(new Error("Worker is unavailable"));
-    await expect(
-      enqueueEvent({ type: "report.created", reportId: "report_1" }),
-    ).rejects.toThrow("Worker is unavailable");
+      enqueueEvent({ type: "report.updated", reportId: "report_1" }),
+    ).rejects.toThrow("Queue unavailable");
     expect(console.error).toHaveBeenCalledOnce();
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('"message":"async_event_enqueue_failed"'),
@@ -94,6 +56,5 @@ describe("event producer runtime selection", () => {
     expect(console.error).toHaveBeenCalledWith(
       expect.stringContaining('"eventId":'),
     );
-    expect(mocks.directSend).not.toHaveBeenCalled();
   });
 });

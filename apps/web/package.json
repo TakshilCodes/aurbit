@@ -6,8 +6,6 @@
   "scripts": {
     "dev": "next dev --port 3000",
     "build": "next build",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
@@ -15,17 +13,17 @@
   },
   "dependencies": {
     "@aurbit/async-events": "workspace:*",
-    "@aurbit/db": "workspace:*",
     "@aurbit/logger": "workspace:^",
     "@aurbit/rate-limit": "workspace:*",
     "@aurbit/turnstile": "workspace:*",
     "@aurbit/ui": "workspace:*",
-    "@opennextjs/cloudflare": "^1.20.4",
     "@sentry/nextjs": "^10.72.0",
     "next": "16.3.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@aurbit/db": "workspace:*",
+    "@aurbit/object-storage": "workspace:*"
   },
   "devDependencies": {
     "@aurbit/eslint-config": "workspace:*",
@@ -38,7 +36,6 @@
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "5.9.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.125.0"
+    "vitest": "^4.1.11"
   }
 }
