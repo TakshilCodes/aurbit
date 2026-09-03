@@ -1,0 +1,26 @@
+{
+  "name": "@aurbit/object-storage",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.984.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@aurbit/eslint-config": "workspace:*",
+    "@aurbit/typescript-config": "workspace:*",
+    "eslint": "^9.39.1",
+    "typescript": "5.9.2",
+    "vitest": "^4.1.11",
+    "@types/node": "^22.15.3"
+  }
+}

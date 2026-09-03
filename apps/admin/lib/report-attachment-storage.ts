@@ -1,24 +1,10 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { createObjectStorageFromEnvironment } from "@aurbit/object-storage";
 
-type ReportAttachmentObject = {
-  body: ReadableStream<Uint8Array>;
-};
-
-export type ReportAttachmentBucket = {
-  get(key: string): Promise<ReportAttachmentObject | null>;
-};
+export type ReportAttachmentBucket = Pick<
+  ReturnType<typeof createObjectStorageFromEnvironment>,
+  "get"
+>;
 
 export function getReportAttachmentBucket(): ReportAttachmentBucket {
-  const { env } = getCloudflareContext() as unknown as {
-    env: { BUG_REPORT_ATTACHMENTS?: ReportAttachmentBucket };
-  };
-  const bucket = env.BUG_REPORT_ATTACHMENTS;
-
-  if (!bucket) {
-    throw new Error(
-      "Report attachment storage is not configured. Bind BUG_REPORT_ATTACHMENTS to the private R2 bucket.",
-    );
-  }
-
-  return bucket;
+  return createObjectStorageFromEnvironment();
 }

@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Prisma generated client
 packages/db/src/generated/
+
+# Local attachment storage
+.aurbit/

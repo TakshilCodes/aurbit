@@ -11,7 +11,7 @@
 
 The repository did not contain a Sentry SDK integration when this stage began. This implementation adds it. Tracing is disabled (`tracesSampleRate: 0`); Replay and Sentry Logs are not enabled. There was no existing intentional tracing/Replay setup to preserve.
 
-Pino has different Node/browser behavior, including base fields and serialization. A portable logger with no runtime dependencies is simpler for this Next/OpenNext/Workers combination; no Node transports are bundled. This is not a claim that Pino cannot run in Workers.
+Pino has different Node/browser behavior, including base fields and serialization. A portable logger with no runtime dependencies is simpler for this Vercel Next.js and Cloudflare Worker runtimes; no Node transports are bundled. This is not a claim that Pino cannot run in Workers.
 
 ## Code map
 
@@ -91,7 +91,7 @@ Worker identity already uses AURBIT_ENV. Next public variables must be set **bef
 2. Copy each project's DSN from Client Keys / DSN settings. Set each app's NEXT_PUBLIC_SENTRY_DSN and NEXT_PUBLIC_APP_ENV=staging or production before its build.
 3. Store the background Worker's SENTRY_DSN as an environment-specific Cloudflare secret. From apps/worker, use `pnpm exec wrangler secret put SENTRY_DSN --env staging`. Repeat intentionally for production.
 4. For readable Next production stacks, create a Sentry upload token following its source-map instructions. Supply SENTRY_AUTH_TOKEN, SENTRY_ORG (slug), SENTRY_PROJECT (slug) in the private build environment. Use the correct project per app. Upload is disabled without the token. Worker source-map upload automation is deferred; bundled stack locations remain available.
-5. Rebuild/deploy when ready. Existing nodejs_compat and compatibility date meet the documented OpenNext SDK requirements.
+5. Rebuild/deploy when ready. The background Worker retains its existing Cloudflare compatibility settings.
 6. Trigger a controlled synthetic exception in non-production, containing no personal data. Verify project/environment, correlation tags, safe stack locations, privacy filtering, no duplicate captures, and source-map resolution for a real uploaded Next build.
 7. Set appropriate retention/access controls. Tracing/Replay remain off until deliberately configured.
 
@@ -124,7 +124,7 @@ Files:
 - `apps/web/.env.local` for normal Next dev (port 3000).
 - `apps/admin/.env.local` for normal Next dev (port 3001).
 - `apps/worker/.dev.vars` for Wrangler Queue/Cron development.
-- When running web/admin themselves under Wrangler/OpenNext preview, also supply their runtime values through their ignored `.dev.vars` or configured runtime secrets.
+- For deployed web/admin apps, set these values in the corresponding Vercel project.
 
 Never use a NEXT_PUBLIC prefix. Neither value is read by browser instrumentation. Restart the relevant local processes after changing configuration.
 
@@ -194,12 +194,12 @@ pnpm --filter @aurbit/worker exec wrangler deploy --dry-run --env production --o
 
 Tests cover logger identity/privacy, optional sink failures, safe errors, request-ID propagation, deferred HTTPS delivery, bounded batches, timeouts, configuration failures and concurrent Worker event isolation. Tests do not send real email or monitoring data.
 
-Real Better Stack ingestion, Sentry delivery/source-map resolution and deployed OpenNext checks require staging configuration. Use Linux/WSL for full Next/OpenNext builds; a successful Next build is not itself an OpenNext deployment check. No alerting platform, OTel, Replay, audit changes, health routes or deployment automation is added.
+Real Better Stack ingestion, Sentry delivery/source-map resolution, and deployed Vercel/Worker checks require staging configuration. No alerting platform, OTel, Replay, audit changes, health routes or deployment automation is added.
 
 References:
 
 - [Sentry Next.js setup](https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/)
-- [Sentry OpenNext compatibility](https://docs.sentry.io/platforms/javascript/guides/cloudflare/frameworks/nextjs/)
+
 - [Sentry Cloudflare SDK](https://docs.sentry.io/platforms/javascript/guides/cloudflare/)
 - [Better Stack HTTP ingestion](https://betterstack.com/docs/logs/ingesting-data/http/logs/)
 - [Next after](https://nextjs.org/docs/app/api-reference/functions/after)

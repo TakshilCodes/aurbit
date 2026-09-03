@@ -10,7 +10,6 @@ export const nextJsConfig = [
   ...baseConfig,
   globalIgnores([
     ".next/**",
-    ".open-next/**",
     ".wrangler/**",
     "out/**",
     "build/**",

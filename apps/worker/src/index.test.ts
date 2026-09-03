@@ -13,7 +13,6 @@ vi.mock("@sentry/cloudflare", () => ({
 vi.mock("./scheduled-maintenance", () => ({
   runScheduledMaintenance: vi.fn(),
 }));
-vi.mock("./local-queue-producer", () => ({ LocalQueueProducer: class {} }));
 vi.mock("./consumer", () => ({ consumeAurbitEventBatch: vi.fn() }));
 vi.mock("./handlers", () => ({ createDefaultEventHandlers: vi.fn() }));
 
@@ -64,4 +63,43 @@ it("queue entrypoint preserves consumer processing and registers background flus
   expect(createDefaultEventHandlers).toHaveBeenCalledExactlyOnceWith({});
   expect(consumeAurbitEventBatch).toHaveBeenCalledOnce();
   expect(context.waitUntil).toHaveBeenCalledOnce();
+});
+
+it("accepts validated events through the local-only HTTP producer", async () => {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const response = await worker.fetch(
+    new Request("http://127.0.0.1/__aurbit/events", {
+      body: JSON.stringify({
+        body: {
+          eventId: "77d8bc7b-f20c-42c3-905a-a6f3211502d7",
+          occurredAt: "2026-08-29T12:00:00.000Z",
+          reportId: "report_1",
+          type: "report.updated",
+          version: 1,
+        },
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    }) as never,
+    {
+      AURBIT_ENV: "local",
+      LOCAL_AURBIT_EVENTS: { send } as never,
+    },
+  );
+
+  expect(response.status).toBe(204);
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({ reportId: "report_1", version: 1 }),
+  );
+});
+
+it("does not expose the local producer outside the local environment", async () => {
+  const response = await worker.fetch(
+    new Request("https://worker.example/__aurbit/events", {
+      method: "POST",
+    }) as never,
+    { AURBIT_ENV: "production" },
+  );
+
+  expect(response.status).toBe(404);
 });

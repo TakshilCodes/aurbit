@@ -31,7 +31,7 @@ describe("public report attachment selection", () => {
           size: PUBLIC_REPORT_ATTACHMENT_POLICY.maxFileSizeBytes + 1,
         }),
       ]),
-    ).toBe("Each attachment must be 5 MB or smaller.");
+    ).toBe("Each attachment must be 4 MB or smaller.");
 
     expect(
       getPublicReportAttachmentSelectionError(
@@ -41,5 +41,14 @@ describe("public report attachment selection", () => {
         ),
       ),
     ).toBe("Attach up to 3 images.");
+  });
+
+  it("keeps the complete request below Vercel's function body limit", () => {
+    expect(
+      getPublicReportAttachmentSelectionError([
+        selectedFile({ size: 2_100_000 }),
+        selectedFile({ size: 2_100_000 }),
+      ]),
+    ).toBe("Attachments must total 4 MB or less.");
   });
 });

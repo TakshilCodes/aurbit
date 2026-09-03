@@ -3,19 +3,15 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "build:cloudflare": "turbo run cf:build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preview:cloudflare:admin": "pnpm --filter admin cf:preview",
-    "preview:cloudflare:web": "pnpm --filter web cf:preview",
     "prepare": "husky",
     "dev:queue": "turbo run dev",
     "test:queue": "pnpm --filter @aurbit/worker test:queue",
-    "preview:cloudflare:queue": "pnpm --filter web cf:build && pnpm --filter web exec wrangler dev -c wrangler.jsonc -c ../worker/wrangler.jsonc --persist-to ../../.wrangler/state/queues",
     "preview:cloudflare:worker": "pnpm --filter @aurbit/worker dev"
   },
   "devDependencies": {
@@ -50,6 +46,10 @@
       "prettier --write",
       "pnpm --filter @aurbit/eslint-config exec eslint --fix --max-warnings 0"
     ],
-    "*.{css,json,md,yaml,yml}": "prettier --write"
+    "*.{css,json,md,yaml,yml}": "prettier --write",
+    "packages/object-storage/**/*.{js,mjs,ts,tsx}": [
+      "prettier --write",
+      "pnpm --filter @aurbit/object-storage exec eslint --fix --max-warnings 0"
+    ]
   }
 }

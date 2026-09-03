@@ -104,11 +104,9 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
 ```
 
 Set the same `WEBHOOK_ENCRYPTION_KEY` in `apps/admin/.env.local` and
-`apps/worker/.dev.vars` locally. In staging/production, set it as a Wrangler
-secret on **both** admin and background Worker, e.g.:
+`apps/worker/.dev.vars` locally. In staging/production, set it in the admin Vercel project and as a Wrangler secret on the background Worker, e.g.:
 
 ```sh
-pnpm --filter admin exec wrangler secret put WEBHOOK_ENCRYPTION_KEY --env staging
 pnpm --filter @aurbit/worker exec wrangler secret put WEBHOOK_ENCRYPTION_KEY --env staging
 ```
 
@@ -119,9 +117,10 @@ Do not put this key, endpoint secrets, or production database URLs in Git.
 
 Apply `pnpm --filter @aurbit/db db:migrate:deploy` and generate Prisma clients.
 The new migration creates `webhook_endpoints`, `webhook_deliveries`, and the
-delivery status enum. Deploy admin, web, and Worker to matching environments.
-Admin now also binds `AURBIT_EVENTS` to the existing Queue. No new Queue, R2
-bucket, Cron, email provider, or public API is introduced.
+delivery status enum. Deploy admin and web to matching Vercel environments and
+the Worker to the matching Cloudflare environment. Admin publishes events through
+the Queue HTTP adapter. No new Queue, R2 bucket, Cron, email provider, or
+public API is introduced.
 
 ## Destinations and SSRF boundary
 
@@ -211,8 +210,7 @@ databases, creates a disposable workspace/report/endpoint, generates temporary
 secrets, runs the actual Queue/Worker against a loopback signature verifier,
 asserts a 204 DELIVERED record, then removes its own fixtures. Port 8789 must
 be free. It never sends email or contacts customer endpoints.
-Production-like OpenNext bundling remains subject to the existing native
-Windows limitations; use Linux/WSL for full deployment preview.
+Vercel validates the Next.js runtime; the Worker remains independently validated with Wrangler.
 
 Deferred: manual `webhook.test` button, replay UI, full per-attempt archive,
 retention cleanup, master-key rotation tooling, outbox, hardened egress proxy,
